@@ -1,0 +1,15 @@
+{
+    "schema_version":  1,
+    "status":  "pass",
+    "platform":  "native Windows x64",
+    "checks":  [
+                   "bundled_qemu_without_PATH_or_development_overrides",
+                   "bundled_ntfs_worker_matches_package",
+                   "create_ext4_edit_and_vmdk_readback_in_relocated_unicode_path",
+                   "runtime_check_without_python_or_dotnet_on_PATH",
+                   "missing_dependency_is_reported",
+                   "no_argument_gui_startup_via_process_shell_cmd_powershell_and_shortcut",
+                   "production_gui_window_starts_with_bundled_runtime",
+                   "gui_automatically_finds_packaged_backend_and_qemu_and_edits_ext4"
+               ]
+}

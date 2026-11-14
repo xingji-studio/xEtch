@@ -21,11 +21,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - run: sudo apt-get update && sudo apt-get install -y qemu-utils qemu-system-common dosfstools mtools e2fsprogs ntfs-3g exfatprogs gcc-mingw-w64-x86-64 pkg-config
       - run: python3 scripts/p0_validate.py --output artifacts/p0.json
       - run: cargo test --locked -p xetch-core --test backend -- --include-ignored --test-threads=1
       - run: cargo build --locked --release
       - run: python3 scripts/build_ntfs_worker.py
+      - name: Build and validate relocated Linux package
+        env:
+          XETCH_NTFS: 'on'
+        run: |
+          ./xetch package
+          python3 scripts/package_validate.py --package dist/xetch-linux-x64 --directory artifacts/package-linux-validation --output artifacts/package-linux-results.json
       - run: python3 scripts/ntfs_validate.py --directory artifacts/ntfs-linux --output artifacts/ntfs-linux-results.json --large-volume
       - run: python3 scripts/build_ntfs_worker.py --target windows
       - uses: actions/upload-artifact@v4
@@ -94,19 +103,27 @@ jobs:
         run: ./scripts/windows_filesystems_validate.ps1 -Binary target/release/xetch.exe -QemuDirectory artifacts/windows/qemu -Fixtures artifacts/fs-fixtures -ResultsDirectory artifacts/windows/filesystems -Output artifacts/windows/filesystems-results.json
       - name: Native Windows exFAT and ext4 creation and edit matrix
         run: python scripts/format_validate.py --binary target/release/xetch.exe --directory artifacts/windows/format-validation --produce-only --output artifacts/windows/format-producer-results.json
-      - name: Build WinUI frontend
+      - name: Build backend and self-contained WinUI portable package
         shell: pwsh
-        run: ./scripts/windows_build_gui.ps1
+        env:
+          XETCH_NTFS: 'on'
+          XETCH_CARGO_TARGET_DIR: target
+        run: .\xetch.cmd package
       - name: Build and run native GUI integration variant
         shell: pwsh
         run: |
-          ./scripts/windows_build_gui.ps1 -SmokeTests -OutputDirectory target/gui/windows-smoke
+          ./scripts/windows_build_gui.ps1 -Publish -SelfContained -SmokeTests -OutputDirectory target/gui/windows-smoke
           ./scripts/windows_gui_validate.ps1 -Binary target/gui/windows-smoke/xEtch.Windows.exe -Backend target/release/xetch.exe -Image artifacts/fs-fixtures/ntfs.img -Directory artifacts/windows/gui-validation/ntfs -Output artifacts/windows/gui-results.json
           ./scripts/windows_gui_validate.ps1 -Binary target/gui/windows-smoke/xEtch.Windows.exe -Backend target/release/xetch.exe -Image artifacts/fs-fixtures/exfat.img -FileSystem exFAT -Directory artifacts/windows/gui-validation/exfat -Output artifacts/windows/gui-exfat-results.json
           ./scripts/windows_gui_validate.ps1 -Binary target/gui/windows-smoke/xEtch.Windows.exe -Backend target/release/xetch.exe -Image artifacts/fs-fixtures/ext4.img -FileSystem ext4 -Directory artifacts/windows/gui-validation/ext4 -Output artifacts/windows/gui-ext4-results.json
           ./scripts/windows_gui_validate.ps1 -Binary target/gui/windows-smoke/xEtch.Windows.exe -Backend target/release/xetch.exe -FileSystem exFAT -CreateImage -Directory artifacts/windows/gui-created/exfat -Output artifacts/windows/gui-create-exfat-results.json
           ./scripts/windows_gui_validate.ps1 -Binary target/gui/windows-smoke/xEtch.Windows.exe -Backend target/release/xetch.exe -FileSystem ext4 -CreateImage -Directory artifacts/windows/gui-created/ext4 -Output artifacts/windows/gui-create-ext4-results.json
           ./scripts/windows_gui_validate.ps1 -Binary target/gui/windows-smoke/xEtch.Windows.exe -Backend target/release/xetch.exe -FileSystem FAT32 -CreateImage -Directory artifacts/windows/gui-created/fat32 -Output artifacts/windows/gui-create-fat32-results.json
+      - name: Validate relocated Windows backend and GUI package
+        run: |
+          python scripts/package_validate.py --package dist/xetch-windows-x64 --gui-test-build target/gui/windows-smoke --directory artifacts/windows/package-validation --output artifacts/windows/package-results.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Copy-Item artifacts/windows/package-validation/launcher-results.json artifacts/windows/launcher-results.json
       - name: Reproduce NTFS candidate write gate on a disposable copy
         shell: pwsh
         run: |

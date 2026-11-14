@@ -8,9 +8,13 @@ WinUI 3 / C# / .NET 8 的 Windows 原生前端。无管理员清单，不挂载�
 
 ## 构建和启动
 
-需要 Windows 10 2004+（已验 Windows 11 x64）、.NET 8 桌面运行环境、Visual Studio / Build Tools 的 MSBuild 与 Windows SDK。构建锁定 Windows App SDK 1.8.260101001 和 SDK BuildTools 10.0.26100.7463。项目不注册 MSIX，Windows App SDK 的本地运行文件随输出目录生成；需保留完整目录，不能单独移动 EXE。
+需要 Windows 10 2004+（已验 Windows 11 x64）、.NET SDK、Visual Studio / Build Tools 的 MSBuild 与 Windows SDK。构建锁定 Windows App SDK 1.8.260101001 和 SDK BuildTools 10.0.26100.7463。项目不注册 MSIX，需保留完整目录，不能单独移动 EXE。
 
-先构建 Rust 后端，按根 README 准备 QEMU。若需要 NTFS 编辑，在 Linux/WSL 运行 `python3 scripts/build_ntfs_worker.py --target windows`，将生成的 `xetch-ntfs-worker.exe` 放在 `xetch.exe` 旁。
+推荐在项目根目录执行 `.\xetch.cmd build` 或 `.\xetch.cmd package`。打包后运行 `dist/xetch-windows-x64/start-gui.cmd`，先用 `check-deps.cmd` 检查依赖；包内包含 .NET、Windows App SDK、XAML 资源、后端与 QEMU，运行无需预装 .NET SDK 或对应运行时。参见 [统一构建说明](../../docs/BUILD.md)。
+
+也可双击或无参数运行包内 `xetch.exe`，由后端找到并启动 GUI；从 cmd、PowerShell、Windows Shell 或快捷方式启动都不依赖工作目录。正常 CLI 和 `serve --stdio` 调用不会打开 GUI。`XETCH_GUI` 可指定另一个前端可执行文件。
+
+分别构建时，先构建 Rust 后端，按根 README 准备 QEMU。若需要 NTFS 编辑，在 Linux/WSL 运行 `python3 scripts/build_ntfs_worker.py --target windows`，将生成的 `xetch-ntfs-worker.exe` 放在 `xetch.exe` 旁。以下开发脚本默认使用已安装的 .NET 8 运行时，统一入口会发布自包含版本。
 
 ```powershell
 cargo build --locked --release
@@ -18,7 +22,7 @@ cargo build --locked --release
 ./scripts/windows_run_gui.ps1
 ```
 
-GUI 按以下顺序查找后端：`XETCH_BACKEND` → GUI 旁的 `backend/xetch.exe` → 同目录 `xetch.exe` → 开发目录下 `target/windows/release/xetch.exe` 或 `target/release/xetch.exe`。QEMU 可通过环境变量指定；开发模式自动查找项目内 `artifacts/windows/qemu`，部署目录则查找后端旁的 `qemu` 子目录。
+GUI 按以下顺序查找后端：`XETCH_BACKEND` → GUI 旁的 `backend/xetch.exe` → 同目录 `xetch.exe` → 带包清单的上级目录 `xetch.exe` → 统一构建目录中的同级 `backend/xetch.exe` → 开发目录下 `target/windows/release/xetch.exe` 或 `target/release/xetch.exe`。QEMU 可通过环境变量指定；开发模式自动查找项目内 `artifacts/windows/qemu`，部署目录则查找后端旁的 `qemu` 子目录。移动后的发行包不回退查找源码目录。
 
 会话默认保存至 `%LOCALAPPDATA%/xEtch/Workspaces`，可用 `XETCH_WORKSPACE_ROOT` 指定目录。界面“查看更改与会话位置”提供恢复位置。支持 `--image <完整路径>` 或 `--workspace <完整路径>` 启动。会话更改在另存后仍保留，可以继续编辑；源镜像和全部关联文件需要保留原路径。
 
@@ -43,4 +47,4 @@ GUI 按以下顺序查找后端：`XETCH_BACKEND` → GUI 旁的 `backend/xetch.
 
 [默认 FAT32 新建流程](../../docs/windows-gui-create-fat32-results.json)另有 16 项检查；修复底层特殊目录项后，源镜像和编辑另存的输出也通过 fsck.fat 与 mtools 独立检查。
 
-[本机运行记录](../../docs/windows-gui-results.json)。电脑控制工具因 WSL 路径初始化错误无法使用，已完成原生窗口和控制器集成检查；**文件选择器、对话框及鼠标键盘交互仍需人工验收**。当前还没有任务百分比、取消、撤销、拖放、多选、发布安装包和签名。Linux/macOS 原生前端尚未开始。
+[本机运行记录](../../docs/windows-gui-results.json)。电脑控制工具因 WSL 路径初始化错误无法使用，已完成原生窗口和控制器集成检查；**文件选择器、对话框及鼠标键盘交互仍需人工验收**。当前还没有任务百分比、取消、撤销、拖放、多选、安装程序和签名。Linux/macOS 原生前端尚未开始。

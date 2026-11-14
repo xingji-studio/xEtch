@@ -5,11 +5,14 @@ use std::{
     path::PathBuf,
 };
 
+mod launcher;
+
 #[derive(Parser)]
 #[command(
     name = "xetch",
     version,
-    about = "Offline IMG/VMDK editor. Edits are saved in a workspace; source images stay unchanged."
+    about = "Offline IMG/VMDK editor. Edits are saved in a workspace; source images stay unchanged.",
+    after_help = "Run without arguments to open the GUI. Use serve --stdio for the backend protocol."
 )]
 struct Cli {
     #[arg(long, global = true)]
@@ -358,7 +361,15 @@ fn serve() -> io::Result<()> {
     Ok(())
 }
 fn main() {
-    let cli = Cli::parse();
+    let args = launcher::arguments(std::env::args_os(), cfg!(target_os = "macos"));
+    if args.len() == 1 {
+        if let Err(error) = launcher::launch() {
+            eprintln!("Cannot open xEtch GUI: {error}");
+            std::process::exit(4);
+        }
+        return;
+    }
+    let cli = Cli::parse_from(args);
     if matches!(cli.command, Command::Serve { .. }) {
         if let Err(e) = serve() {
             eprintln!("{e}");

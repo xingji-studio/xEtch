@@ -6,12 +6,20 @@
 
 ## 构建与依赖
 
-需要 Rust 1.89+ 和 QEMU 的 `qemu-img`、`qemu-storage-daemon`，无需挂载镜像或管理员权限。QEMU 暂不随程序分发。
+统一入口需要 Python 3.12+ 和 Rust 1.89+。Windows x64 默认同时构建后端、CLI 和 GUI；Linux/macOS 默认构建后端与 CLI。
 
 ```bash
-cargo build --release
-./target/release/xetch doctor
+./xetch doctor
+./xetch build
+./xetch package
+# WSL 构建 Windows 版本：XETCH_PLATFORM=windows ./xetch package
 ```
+
+Windows 使用 `.\xetch.cmd build`、`.\xetch.cmd package`。默认包位于 `dist/xetch-<平台>-<架构>/`，收集后端、QEMU、可选 NTFS 工作进程及 Windows GUI 的自包含运行时。整个文件夹可以移动后运行，不需要 Python 或构建工具；Windows 用 `start-gui.cmd` 启动界面。运行 `check-deps.cmd`（Windows）或 `./check-deps.sh`（Linux/macOS）检查缺失依赖。
+
+包内 `xetch.exe` 无参数运行或双击时会打开 GUI；带 `doctor`、`--help`、`serve --stdio` 等参数时仍作为 CLI/后端运行。缺少前端时会明确报错，可用 `XETCH_GUI` 指定前端路径。源码根目录的 `./xetch` 是构建入口，继续使用 `build/package/doctor` 命令。
+
+通过 `XETCH_PLATFORM`、`XETCH_COMPONENTS=all|backend|frontend`、`XETCH_PROFILE=release|debug` 选择构建；环境要求、目录结构和所有选项见 [构建与打包说明](docs/BUILD.md)。Linux/macOS 包仍依赖兼容的系统 C 库。实际操作需要 QEMU 的 `qemu-img`、`qemu-storage-daemon`，无需挂载镜像或管理员权限。
 
 NTFS 写入工作进程在 Linux/WSL 或 macOS 构建，需要 Python 3.12+、C 编译器、make 和 pkg-config。Windows 交叉构建还需 MinGW-w64：
 
@@ -22,9 +30,9 @@ python3 scripts/build_ntfs_worker.py --target windows
 
 原生产物默认放入 `target/release`；Windows 产物放入 `target/windows/release`。将 `xetch-ntfs-worker[.exe]` 放在后端旁，或设置 `XETCH_NTFS_WORKER`。固定的 NTFS-3G 2026.9.28 源包校验、构建参数、许可证与对应源码材料一同生成。没有版本匹配的工作进程时 NTFS 保持只读。组件选型和验证见 [NTFS 说明](docs/NTFS.md)。
 
-Windows 的可执行文件是 `target/release/xetch.exe`。可通过 `XETCH_QEMU_IMG` 和 `XETCH_QEMU_STORAGE_DAEMON` 指定工具的完整路径；默认在 PATH 查找。
+直接 `cargo build --release` 仍可用，产物是 `target/release/xetch[.exe]`。可通过 `XETCH_QEMU_IMG` 和 `XETCH_QEMU_STORAGE_DAEMON` 指定工具完整路径；否则优先查找后端旁的 `qemu/`，再查找 PATH。
 
-已实际验证 Linux / WSL2 + QEMU 8.2.2，以及 Windows 11 x64 + 项目内 QEMU 11.1.0 UTF-8 兼容配置。macOS 实机运行、完整发布打包、真实断电恢复仍待完成。CI 配置包含原生 Windows 集成验收和跨平台文件系统互操作检查；本次没有触发远端 CI。
+已实际验证 Linux / WSL2 + QEMU 8.2.2，以及 Windows 11 x64 + 项目内 QEMU 11.1.0 UTF-8 兼容配置，两个系统的目录打包与移动后运行也已验证。macOS 实机运行、干净系统验收、签名安装包和真实断电恢复仍待完成。CI 配置包含原生 Windows 集成验收和跨平台文件系统互操作检查；本次没有触发远端 CI。
 
 ### Windows 依赖
 
@@ -42,11 +50,11 @@ cargo build --release
 
 ### Windows GUI
 
-需要 .NET 8 桌面运行环境、Visual Studio / Build Tools 的 MSBuild 和 Windows SDK：
+推荐通过统一入口构建和打包，构建需要 .NET SDK、Visual Studio / Build Tools 的 MSBuild 和 Windows SDK；包内附带 .NET 与 Windows App SDK 运行文件：
 
 ```powershell
-./scripts/windows_build_gui.ps1
-./scripts/windows_run_gui.ps1
+.\xetch.cmd package
+.\dist\xetch-windows-x64\start-gui.cmd
 ```
 
 界面支持打开与新建镜像、分区和文件浏览、导入导出、目录创建、改名删除、会话恢复和另存。开发环境自动查找项目内后端及 QEMU；可用 `XETCH_BACKEND` 指定后端。请保留 GUI 输出的完整目录。详见 [GUI 构建与验证说明](apps/windows/README.md)。

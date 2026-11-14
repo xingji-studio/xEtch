@@ -13,11 +13,55 @@ pub fn program(name: &str) -> OsString {
         "qemu-img" => "XETCH_QEMU_IMG",
         _ => "XETCH_QEMU_STORAGE_DAEMON",
     };
-    std::env::var_os(key).unwrap_or_else(|| name.into())
+    if let Some(configured) = std::env::var_os(key) {
+        return configured;
+    }
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(parent) = exe.parent() {
+            let file = if cfg!(windows) {
+                format!("{name}.exe")
+            } else {
+                name.into()
+            };
+            let bundled = parent.join("qemu").join(file);
+            if bundled.is_file() {
+                return bundled.into_os_string();
+            }
+        }
+    }
+    name.into()
 }
 
 pub fn new_command(program: impl AsRef<std::ffi::OsStr>) -> Command {
+    let program = program.as_ref();
     let mut command = Command::new(program);
+    // Portable packages keep QEMU's non-system shared libraries next to its
+    // binaries. Set the search path only for the child, never the caller.
+    #[cfg(unix)]
+    if let Some(parent) = Path::new(program)
+        .parent()
+        .filter(|_| Path::new(program).is_absolute())
+    {
+        let lib = parent.join("lib");
+        if lib.is_dir() {
+            let key = if cfg!(target_os = "macos") {
+                "DYLD_LIBRARY_PATH"
+            } else {
+                "LD_LIBRARY_PATH"
+            };
+            let mut paths = vec![lib];
+            if let Some(existing) = std::env::var_os(key) {
+                paths.extend(std::env::split_paths(&existing));
+            }
+            if let Ok(value) = std::env::join_paths(paths) {
+                command.env(key, value);
+            }
+        }
+        let modules = parent.join("modules");
+        if modules.is_dir() && std::env::var_os("QEMU_MODULE_DIR").is_none() {
+            command.env("QEMU_MODULE_DIR", modules);
+        }
+    }
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;

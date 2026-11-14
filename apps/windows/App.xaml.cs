@@ -8,7 +8,15 @@ public partial class App : Application
     public App() => InitializeComponent();
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
-        _window = new MainWindow();
-        _window.Activate();
+        try
+        {
+            _window = new MainWindow();
+            _window.Activate();
+        }
+        catch (Exception error)
+        {
+            Console.Error.WriteLine($"xEtch GUI startup failed: {error}");
+            throw;
+        }
     }
 }

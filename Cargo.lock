@@ -576,6 +576,8 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "serde_json",
+ "tempfile",
+ "windows-sys",
  "xetch-core",
 ]
 

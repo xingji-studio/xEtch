@@ -4,9 +4,10 @@ $utf8 = [System.Text.UTF8Encoding]::new($false)
 function Quote-Argument([string]$Value) {
     return '"' + [regex]::Replace([regex]::Replace($Value, '(\\*)"', '$1$1\"'), '(\\+)$', '$1$1') + '"'
 }
-function Invoke-Tool([string]$Program, [string[]]$ToolArguments, [string]$StdinText = "", [switch]$ExpectFailure) {
+function Invoke-Tool([string]$Program, [string[]]$ToolArguments, [string]$StdinText = "", [switch]$ExpectFailure, [string]$WorkingDirectory = "", [switch]$IncludeStandardError) {
     $start = [System.Diagnostics.ProcessStartInfo]::new()
     $start.FileName = $Program
+    if ($WorkingDirectory) { $start.WorkingDirectory = $WorkingDirectory }
     $start.Arguments = ($ToolArguments | ForEach-Object { Quote-Argument $_ }) -join ' '
     $start.UseShellExecute = $false
     $start.CreateNoWindow = $true
@@ -37,5 +38,6 @@ function Invoke-Tool([string]$Program, [string[]]$ToolArguments, [string]$StdinT
     } elseif ($exitCode -ne 0) {
         throw "Exit ${exitCode}: $Program $($start.Arguments)`n$stdout`n$stderr"
     }
+    if ($IncludeStandardError) { return $stdout + $stderr }
     return $stdout
 }

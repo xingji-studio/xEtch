@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "platform": "linux",
+  "checks": [
+    "relocated_unicode_and_space_path",
+    "empty_PATH_no_development_overrides",
+    "bundled_qemu_and_ntfs",
+    "create_ext4_and_edit_workspace",
+    "vmdk_export_and_readback",
+    "runtime_check_without_python",
+    "missing_dependency_is_reported",
+    "package_replacement_preserves_personal_files",
+    "backend_only_no_args_reports_missing_gui",
+    "stdio_rpc_does_not_launch_frontend"
+  ]
+}

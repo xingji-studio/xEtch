@@ -4,6 +4,7 @@ param(
     [string]$Image = "",
     [ValidateSet("FAT32", "NTFS", "exFAT", "ext4")][string]$FileSystem = "NTFS",
     [switch]$CreateImage,
+    [switch]$DiscoverBackend,
     [ValidateSet("none", "mbr", "gpt")][string]$Table = "gpt",
     [string]$Directory = "artifacts/windows/gui-validation",
     [string]$Output = "artifacts/windows/gui-results.json"
@@ -26,10 +27,16 @@ $reportPath = Join-Path $Directory "gui-results.json"
 $config = @{image=$Image;filesystem=$FileSystem;create_image=[bool]$CreateImage;table=$Table;payload=$payload;readback=(Join-Path $Directory "readback.txt");output=(Join-Path $Directory "gui-saved.img");report=$reportPath;screenshot=(Join-Path $Directory "preview.png")}
 $configPath = Join-Path $Directory "test-config.json"
 [IO.File]::WriteAllText($configPath, ($config | ConvertTo-Json), $utf8)
-$env:XETCH_BACKEND = $Backend
+if ($DiscoverBackend) {
+    foreach ($name in @("XETCH_BACKEND", "XETCH_QEMU_IMG", "XETCH_QEMU_STORAGE_DAEMON", "XETCH_NTFS_WORKER", "QEMU_MODULE_DIR", "DOTNET_ROOT")) {
+        [Environment]::SetEnvironmentVariable($name, $null, "Process")
+    }
+    $env:PATH = "$env:SystemRoot\System32;$env:SystemRoot"
+    $env:DOTNET_MULTILEVEL_LOOKUP = "0"
+} else { $env:XETCH_BACKEND = $Backend }
 $env:XETCH_WORKSPACE_ROOT = Join-Path $Directory "sessions"
 $sourceHash = if (-not $CreateImage) { (Get-FileHash $Image).Hash } else { $null }
-Invoke-Tool $Binary @("--smoke-test", $configPath) | Out-Null
+Invoke-Tool $Binary @("--smoke-test", $configPath) -WorkingDirectory $(if ($DiscoverBackend) { $Directory } else { "" }) | Out-Null
 if (-not (Test-Path $reportPath)) { throw "GUI exited without a validation report. Use a build with -SmokeTests." }
 $report = [IO.File]::ReadAllText($reportPath) | ConvertFrom-Json
 if (-not $CreateImage -and (Get-FileHash $Image).Hash -ne $sourceHash) { throw "GUI test changed source bytes" }

@@ -1,6 +1,9 @@
 param(
     [ValidateSet("Debug", "Release")][string]$Configuration = "Release",
     [switch]$SmokeTests,
+    [switch]$Publish,
+    [switch]$SelfContained,
+    [switch]$Offline,
     [string]$OutputDirectory = ""
 )
 $ErrorActionPreference = "Stop"
@@ -15,5 +18,16 @@ $msbuild = ($paths -split "`r?`n" | Where-Object { $_ -and (Test-Path $_) } | Se
 if (-not $msbuild) { throw "MSBuild was not found by vswhere." }
 $arguments = @((Join-Path $root "apps/windows/xEtch.Windows.csproj"), "/restore", "/p:RestoreLockedMode=true", "/p:Configuration=$Configuration", "/p:Platform=x64", "/nologo", "/v:minimal")
 if ($SmokeTests) { $arguments += "/p:XetchGuiSmokeTest=true" }
-if ($OutputDirectory) { $arguments += "/p:OutputPath=$([IO.Path]::GetFullPath($OutputDirectory))\" }
+if ($SelfContained) { $arguments += @("/p:SelfContained=true", "/p:WindowsAppSDKSelfContained=true") }
+if ($Offline) {
+    $feed = Join-Path $root "target/empty-nuget-feed"
+    [IO.Directory]::CreateDirectory($feed) | Out-Null
+    $arguments += @("/p:RestoreSources=$feed", "/p:NuGetAudit=false")
+}
+if ($Publish) { $arguments += "/t:Publish" }
+if ($OutputDirectory) {
+    $property = if ($Publish) { "PublishDir" } else { "OutputPath" }
+    $arguments += "/p:$property=$([IO.Path]::GetFullPath($OutputDirectory))\"
+    if ($Publish) { $arguments += "/p:OutputPath=$([IO.Path]::GetFullPath($OutputDirectory))-build\" }
+}
 Write-Host (Invoke-Tool $msbuild $arguments)

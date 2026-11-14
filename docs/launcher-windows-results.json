@@ -1,0 +1,16 @@
+{
+    "schema_version":  1,
+    "status":  "pass",
+    "platform":  "native Windows x64",
+    "checks":  [
+                   "direct_process_without_arguments",
+                   "windows_shell_double_click_launch_path",
+                   "cmd_quoted_unicode_path",
+                   "powershell_quoted_unicode_path",
+                   "shortcut_with_unrelated_working_directory",
+                   "help_version_and_json_cli_do_not_open_gui",
+                   "unknown_incomplete_and_non_windows_metadata_arguments_are_rejected",
+                   "stdio_backend_response_is_clean_json_and_exits_on_eof",
+                   "missing_packaged_gui_reports_error_without_source_tree_fallback"
+               ]
+}

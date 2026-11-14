@@ -42,6 +42,7 @@ public sealed class BackendClient : IAsyncDisposable
 
     private static string? FindProject()
     {
+        if (File.Exists(Path.Combine(AppContext.BaseDirectory, "..", "xetch-package.json"))) return null;
         for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir is not null; dir = dir.Parent)
             if (File.Exists(Path.Combine(dir.FullName, "Cargo.toml"))) return dir.FullName;
         return null;
@@ -52,8 +53,11 @@ public sealed class BackendClient : IAsyncDisposable
         var configured = Environment.GetEnvironmentVariable("XETCH_BACKEND");
         if (!string.IsNullOrWhiteSpace(configured)) return Path.GetFullPath(configured);
         var project = FindProject();
+        var package = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, ".."));
         var candidates = new[] { Path.Combine(AppContext.BaseDirectory, "backend", "xetch.exe"),
             Path.Combine(AppContext.BaseDirectory, "xetch.exe"),
+            File.Exists(Path.Combine(package, "xetch-package.json")) ? Path.Combine(package, "xetch.exe") : "",
+            File.Exists(Path.Combine(package, "build.json")) ? Path.Combine(package, "backend", "xetch.exe") : "",
             project is null ? "" : Path.Combine(project, "target", "windows", "release", "xetch.exe"),
             project is null ? "" : Path.Combine(project, "target", "release", "xetch.exe") };
         return candidates.FirstOrDefault(File.Exists)
