@@ -1,0 +1,30 @@
+--- a/src/dir.rs
++++ b/src/dir.rs
+@@ -248,8 +248,16 @@
+                 let sfn_entry = self.create_sfn_entry(dot_sfn, FileAttributes::DIRECTORY, entry.first_cluster());
+                 dir.write_entry(".", sfn_entry)?;
+                 let dotdot_sfn = ShortNameGenerator::generate_dotdot();
++                // The parent of a root-level directory is encoded as zero,
++                // including FAT32 whose root otherwise has a real cluster.
++                let parent = self.stream.first_cluster();
++                let parent = if parent == self.fs.root_dir().stream.first_cluster() {
++                    None
++                } else {
++                    parent
++                };
+                 let sfn_entry =
+-                    self.create_sfn_entry(dotdot_sfn, FileAttributes::DIRECTORY, self.stream.first_cluster());
++                    self.create_sfn_entry(dotdot_sfn, FileAttributes::DIRECTORY, parent);
+                 dir.write_entry("..", sfn_entry)?;
+                 Ok(dir)
+             },
+@@ -448,7 +456,8 @@
+         // check if name doesn't contain unsupported characters
+         validate_long_name(name)?;
+         // convert long name to UTF-16
+-        let lfn_utf16 = Self::encode_lfn_utf16(name);
++        // Dot entries occupy the first two raw slots; no LFN may precede them.
++        let lfn_utf16 = Self::encode_lfn_utf16(if name == "." || name == ".." { "" } else { name });
+         // write LFN entries
+         let (mut stream, start_pos) = self.alloc_and_write_lfn_entries(&lfn_utf16, raw_entry.name())?;
+         // write short name entry

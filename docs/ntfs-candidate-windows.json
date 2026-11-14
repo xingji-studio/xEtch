@@ -1,0 +1,10 @@
+{
+  "candidate": "fstool 0.5.0",
+  "disposable_copy": true,
+  "platform": "windows",
+  "probe": "ntfs_candidate_existing_file_write",
+  "reason": "ntfs: open_file_rw refuses to mutate a volume with a non-LFS-shaped $LogFile",
+  "source_sha256": "8f69c1de7f77251c3d5009b5cd3e6f7bad314355255d76f4c732b15b5478f047",
+  "source_unchanged": true,
+  "verdict": "write_blocked"
+}

@@ -1,0 +1,91 @@
+{
+    "results":  [
+                    {
+                        "test":  "native_windows_dependencies",
+                        "status":  "pass"
+                    },
+                    {
+                        "test":  "native_windows_mbr",
+                        "status":  "pass"
+                    },
+                    {
+                        "test":  "native_windows_gpt",
+                        "status":  "pass"
+                    },
+                    {
+                        "test":  "native_windows_monolithicSparse_read_edit_flush_reopen_export",
+                        "status":  "pass"
+                    },
+                    {
+                        "test":  "native_windows_monolithicFlat_read_edit_flush_reopen_export",
+                        "status":  "pass"
+                    },
+                    {
+                        "test":  "native_windows_twoGbMaxExtentSparse_read_edit_flush_reopen_export",
+                        "status":  "pass"
+                    },
+                    {
+                        "test":  "native_windows_twoGbMaxExtentFlat_read_edit_flush_reopen_export",
+                        "status":  "pass"
+                    },
+                    {
+                        "test":  "native_windows_streamOptimized_read_edit_flush_reopen_export",
+                        "status":  "pass"
+                    },
+                    {
+                        "test":  "native_windows_unicode_and_space_paths",
+                        "status":  "pass"
+                    },
+                    {
+                        "test":  "native_windows_failed_edit_and_output_collision",
+                        "status":  "pass"
+                    },
+                    {
+                        "test":  "native_windows_json_rpc",
+                        "status":  "pass"
+                    },
+                    {
+                        "test":  "native_windows_5GiB_split_extent_and_64bit_offsets",
+                        "status":  "pass"
+                    }
+                ],
+    "schema_version":  1,
+    "dependency_profile":  {
+                               "installer_sha512":  "5bcf9eed634e8575a37b74f445af41a2fe4106da512d0c30c368301d4c105037fdfab40a5287367a28a957624cddebbc8c07e16c88ab6634f554cdf3d16bf543",
+                               "url":  "https://qemu.weilnetz.de/w64/qemu-w64-setup-20260811.exe",
+                               "profile":  "xetch-utf8-manifest-v1",
+                               "binaries":  [
+                                                {
+                                                    "prepared_sha256":  "e28ccc80467af96433a044fcae7541d797904bc2e3afd3eb64aabe578896e73b",
+                                                    "original_sha256":  "9d930582d0d574bb106d89982c547688e10b8f356192d302cc3d0ae4e8674534",
+                                                    "name":  "qemu-img.exe"
+                                                },
+                                                {
+                                                    "prepared_sha256":  "35cb7add727866091793c790bd896db5959babf7f3a3c7439af934a2ee6ef199",
+                                                    "original_sha256":  "34ff5e48567017eeff76fb9e2419cf8c88ad5004c980547b416c95eb1a674916",
+                                                    "name":  "qemu-storage-daemon.exe"
+                                                },
+                                                {
+                                                    "prepared_sha256":  "80e26dced7ffd9b3c480b2e69307cf5bf7ab3109932f101baa5ec6766d87ea68",
+                                                    "original_sha256":  "2b4bce81239a3982d3e274a1409251a8c67b26876ff07e5ce921017e2d42da9a",
+                                                    "name":  "qemu-io.exe"
+                                                }
+                                            ]
+                           },
+    "scratch":  null,
+    "host":  "Microsoft Windows NT 10.0.26200.0",
+    "runtime":  "native Windows x86_64",
+    "status":  "pass",
+    "tools":  [
+                  {
+                      "available":  true,
+                      "name":  "qemu-img",
+                      "version":  "qemu-img version 11.1.0 (v11.1.0-12130-ge470268ff4)"
+                  },
+                  {
+                      "available":  true,
+                      "name":  "qemu-storage-daemon",
+                      "version":  "qemu-storage-daemon version 11.1.0 (v11.1.0-12130-ge470268ff4)"
+                  }
+              ]
+}

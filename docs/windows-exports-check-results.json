@@ -1,0 +1,17 @@
+{
+  "status": "pass",
+  "producer": "native Windows xEtch",
+  "checker_host": "Linux",
+  "checks": [
+    "exFAT: exfatprogs consistency and independent file readback",
+    "ext4: e2fsck consistency check",
+    "ext4: independent debugfs file readback",
+    "NTFS: ntfsfix -n check and ntfscat content readback",
+    "WinUI exfat output: independent consistency and file readback",
+    "WinUI ext4 output: independent consistency and file readback",
+    "WinUI ntfs output: independent consistency and file readback",
+    "WinUI new exfat image: partition type, fresh/edited consistency and file readback",
+    "WinUI new ext4 image: partition type, fresh/edited consistency and file readback",
+    "WinUI new fat32 image: partition type, fresh/edited consistency and file readback"
+  ]
+}

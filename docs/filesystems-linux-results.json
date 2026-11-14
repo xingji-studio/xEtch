@@ -1,0 +1,49 @@
+{
+  "status": "pass",
+  "platform": "linux",
+  "filesystems": [
+    {
+      "filesystem": "exfat",
+      "status": "pass",
+      "experimental_write": true,
+      "checks": [
+        "independent_format",
+        "native_read",
+        "mkdir_put_replace_remove",
+        "failed_operation_rollback",
+        "independent_consistency_check",
+        "vmdk_export_readback",
+        "source_unchanged"
+      ]
+    },
+    {
+      "filesystem": "ext4",
+      "status": "pass",
+      "experimental_write": true,
+      "checks": [
+        "independent_format",
+        "native_read",
+        "mkdir_put_replace_remove",
+        "failed_operation_rollback",
+        "independent_consistency_check",
+        "vmdk_export_readback",
+        "source_unchanged"
+      ]
+    },
+    {
+      "filesystem": "ntfs",
+      "status": "pass",
+      "experimental_write": false,
+      "checks": [
+        "independent_format",
+        "native_read",
+        "mkdir_put_replace_remove",
+        "failed_operation_rollback",
+        "independent_consistency_check",
+        "vmdk_export_readback",
+        "source_unchanged"
+      ]
+    }
+  ],
+  "exfat_formatter_independent_check": "pass"
+}

@@ -1,0 +1,17 @@
+[package]
+name = "xetch-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+sha2.workspace = true
+crc32fast.workspace = true
+fatfs.workspace = true
+fstool.workspace = true
+tempfile.workspace = true
+uuid.workspace = true

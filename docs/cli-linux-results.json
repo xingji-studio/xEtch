@@ -1,0 +1,9 @@
+{
+  "status": "pass",
+  "checks": [
+    "CLI FAT import/export, workspace resume, fsck.fat and mtools verification",
+    "CLI VMDK conversion and file readback",
+    "filesystem out-of-space rolls back partial writes",
+    "JSON-RPC stdio capabilities, file browsing and editing"
+  ]
+}

@@ -1,0 +1,159 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "producer": "Linux",
+  "checker": "Linux independent tools",
+  "guards": [
+    "explicit opt-in",
+    "minimum size",
+    "sector alignment",
+    "existing output unchanged",
+    "dependency failure leaves no output or temporary files"
+  ],
+  "cases": [
+    {
+      "case": "exfat-64m-none",
+      "status": "pass",
+      "checks": [
+        "raw_source: table/type, consistency, identity, metadata and content",
+        "saved: table/type, consistency, identity, metadata and content",
+        "deleted: table/type, consistency, identity, metadata and content"
+      ]
+    },
+    {
+      "case": "exfat-64m-mbr",
+      "status": "pass",
+      "checks": [
+        "raw_source: table/type, consistency, identity, metadata and content",
+        "saved: table/type, consistency, identity, metadata and content",
+        "deleted: table/type, consistency, identity, metadata and content"
+      ]
+    },
+    {
+      "case": "exfat-64m-gpt",
+      "status": "pass",
+      "checks": [
+        "raw_source: table/type, consistency, identity, metadata and content",
+        "saved: table/type, consistency, identity, metadata and content",
+        "deleted: table/type, consistency, identity, metadata and content"
+      ]
+    },
+    {
+      "case": "exfat-sector-tail",
+      "status": "pass",
+      "checks": [
+        "raw_source: table/type, consistency, identity, metadata and content",
+        "saved: table/type, consistency, identity, metadata and content",
+        "deleted: table/type, consistency, identity, metadata and content"
+      ]
+    },
+    {
+      "case": "exfat-tiny-last-group",
+      "status": "pass",
+      "checks": [
+        "raw_source: table/type, consistency, identity, metadata and content",
+        "saved: table/type, consistency, identity, metadata and content",
+        "deleted: table/type, consistency, identity, metadata and content"
+      ]
+    },
+    {
+      "case": "exfat-multi-group",
+      "status": "pass",
+      "checks": [
+        "raw_source: table/type, consistency, identity, metadata and content",
+        "saved: table/type, consistency, identity, metadata and content",
+        "deleted: table/type, consistency, identity, metadata and content"
+      ]
+    },
+    {
+      "case": "exfat-direct-vmdk",
+      "status": "pass",
+      "checks": [
+        "raw_source: table/type, consistency, identity, metadata and content",
+        "saved: table/type, consistency, identity, metadata and content",
+        "deleted: table/type, consistency, identity, metadata and content"
+      ]
+    },
+    {
+      "case": "exfat-5g-vmdk",
+      "status": "pass",
+      "checks": [
+        "raw_source: table/type, consistency, identity, metadata and content",
+        "saved: table/type, consistency, identity, metadata and content",
+        "deleted: table/type, consistency, identity, metadata and content"
+      ]
+    },
+    {
+      "case": "ext4-64m-none",
+      "status": "pass",
+      "checks": [
+        "raw_source: table/type, consistency, identity, metadata and content",
+        "saved: table/type, consistency, identity, metadata and content",
+        "deleted: table/type, consistency, identity, metadata and content"
+      ]
+    },
+    {
+      "case": "ext4-64m-mbr",
+      "status": "pass",
+      "checks": [
+        "raw_source: table/type, consistency, identity, metadata and content",
+        "saved: table/type, consistency, identity, metadata and content",
+        "deleted: table/type, consistency, identity, metadata and content"
+      ]
+    },
+    {
+      "case": "ext4-64m-gpt",
+      "status": "pass",
+      "checks": [
+        "raw_source: table/type, consistency, identity, metadata and content",
+        "saved: table/type, consistency, identity, metadata and content",
+        "deleted: table/type, consistency, identity, metadata and content"
+      ]
+    },
+    {
+      "case": "ext4-sector-tail",
+      "status": "pass",
+      "checks": [
+        "raw_source: table/type, consistency, identity, metadata and content",
+        "saved: table/type, consistency, identity, metadata and content",
+        "deleted: table/type, consistency, identity, metadata and content"
+      ]
+    },
+    {
+      "case": "ext4-tiny-last-group",
+      "status": "pass",
+      "checks": [
+        "raw_source: table/type, consistency, identity, metadata and content",
+        "saved: table/type, consistency, identity, metadata and content",
+        "deleted: table/type, consistency, identity, metadata and content"
+      ]
+    },
+    {
+      "case": "ext4-multi-group",
+      "status": "pass",
+      "checks": [
+        "raw_source: table/type, consistency, identity, metadata and content",
+        "saved: table/type, consistency, identity, metadata and content",
+        "deleted: table/type, consistency, identity, metadata and content"
+      ]
+    },
+    {
+      "case": "ext4-direct-vmdk",
+      "status": "pass",
+      "checks": [
+        "raw_source: table/type, consistency, identity, metadata and content",
+        "saved: table/type, consistency, identity, metadata and content",
+        "deleted: table/type, consistency, identity, metadata and content"
+      ]
+    },
+    {
+      "case": "ext4-5g-vmdk",
+      "status": "pass",
+      "checks": [
+        "raw_source: table/type, consistency, identity, metadata and content",
+        "saved: table/type, consistency, identity, metadata and content",
+        "deleted: table/type, consistency, identity, metadata and content"
+      ]
+    }
+  ]
+}

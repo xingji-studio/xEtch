@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "host": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "qemu": "qemu-img version 8.2.2 (Debian 1:8.2.2+ds-0ubuntu1.16)",
+  "rootless": true,
+  "results": [
+    {
+      "test": "fat32_offline_write_and_check",
+      "status": "pass"
+    },
+    {
+      "test": "vmdk_monolithicSparse_nbd_read",
+      "status": "pass"
+    },
+    {
+      "test": "vmdk_monolithicSparse_overlay_flush_reopen_export_source_unchanged",
+      "status": "pass"
+    },
+    {
+      "test": "vmdk_monolithicFlat_nbd_read",
+      "status": "pass"
+    },
+    {
+      "test": "vmdk_monolithicFlat_overlay_flush_reopen_export_source_unchanged",
+      "status": "pass"
+    },
+    {
+      "test": "vmdk_twoGbMaxExtentSparse_nbd_read",
+      "status": "pass"
+    },
+    {
+      "test": "vmdk_twoGbMaxExtentSparse_overlay_flush_reopen_export_source_unchanged",
+      "status": "pass"
+    },
+    {
+      "test": "vmdk_twoGbMaxExtentFlat_nbd_read",
+      "status": "pass"
+    },
+    {
+      "test": "vmdk_twoGbMaxExtentFlat_overlay_flush_reopen_export_source_unchanged",
+      "status": "pass"
+    },
+    {
+      "test": "vmdk_streamOptimized_nbd_read",
+      "status": "pass"
+    },
+    {
+      "test": "vmdk_streamOptimized_overlay_flush_reopen_export_source_unchanged",
+      "status": "pass"
+    },
+    {
+      "test": "5GiB_sparse_split_vmdk_2GiB_boundary_and_64bit_offsets",
+      "status": "pass"
+    },
+    {
+      "test": "ext4_offline_tools_write_read_check",
+      "status": "pass",
+      "product_support": false
+    },
+    {
+      "test": "ntfs_offline_tools_write_read",
+      "status": "pass",
+      "product_support": false
+    }
+  ],
+  "unverified": [
+    "Windows runtime and QEMU distribution",
+    "macOS runtime and signing",
+    "exFAT implementation",
+    "cross-platform NTFS/ext4 library writes",
+    "power-loss durability",
+    "large real-world and snapshot fixtures"
+  ]
+}

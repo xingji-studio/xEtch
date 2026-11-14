@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "producer": "native Windows x64",
+  "checker": "Linux fsck.fat and mtools",
+  "filesystems": [
+    {
+      "filesystem": "FAT12",
+      "status": "pass",
+      "checks": [
+        "root_and_nested_dot_entries_independent_fsck",
+        "unicode_lfn_independent_mtools_readback",
+        "file_move_and_directory_rename",
+        "rejected_operations_preserve_checkpoint",
+        "delete_directory_tree_independent_fsck",
+        "source_hash_unchanged",
+        "unsupported_non_bmp_name_preserves_checkpoint"
+      ]
+    },
+    {
+      "filesystem": "FAT16",
+      "status": "pass",
+      "checks": [
+        "root_and_nested_dot_entries_independent_fsck",
+        "unicode_lfn_independent_mtools_readback",
+        "file_move_and_directory_rename",
+        "rejected_operations_preserve_checkpoint",
+        "delete_directory_tree_independent_fsck",
+        "source_hash_unchanged",
+        "unsupported_non_bmp_name_preserves_checkpoint"
+      ]
+    },
+    {
+      "filesystem": "FAT32",
+      "status": "pass",
+      "checks": [
+        "root_and_nested_dot_entries_independent_fsck",
+        "unicode_lfn_independent_mtools_readback",
+        "file_move_and_directory_rename",
+        "rejected_operations_preserve_checkpoint",
+        "delete_directory_tree_independent_fsck",
+        "source_hash_unchanged",
+        "unsupported_non_bmp_name_preserves_checkpoint"
+      ]
+    }
+  ]
+}

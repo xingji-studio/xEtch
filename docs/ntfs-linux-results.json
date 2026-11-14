@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "platform": "Linux",
+  "engine": "NTFS-3G 2026.9.28",
+  "checks": [
+    "independent_mkntfs_seed_acl_ads_ea",
+    "new_files_unicode_non_bmp_mkdir_file_move",
+    "conflict_nonempty_directory_system_path_rollback",
+    "out_of_space_rollback",
+    "independent_raw_content_acl_ads_ea_mft_preserved",
+    "vmdk_export_readback",
+    "vmdk_source_edit_independent_check",
+    "file_and_empty_directory_delete_source_unchanged",
+    "worker_exit_after_sector_write_checkpoint_rollback",
+    "missing_worker_falls_back_to_read_only",
+    "dirty_volume_refused_without_recovery",
+    "hibernated_volume_refused_without_recovery",
+    "invalid-log_volume_refused_without_recovery",
+    "five_gib_ntfs_volume_64_bit_capacity_and_mft_mirror"
+  ],
+  "source_sha256": "20823983dcb6eb38b7e202f9bd06a1f3a56a208d6737514e8dc9649acd323498",
+  "limits": [
+    "offline clean NTFS only",
+    "no directory rename or compressed/EFS/reparse writes",
+    "ntfsfix -n is not Windows chkdsk"
+  ],
+  "dependency": {
+    "version": "2026.9.28",
+    "source": "https://www.tuxera.com/opensource/ntfs-3g_ntfsprogs-2026.9.28.tgz",
+    "source_sha256": "350d9415c59f7c3fa74e23985ad2d56423c6a168337368f672e2e362d8f295c8",
+    "worker_sha256": "886b780175dcb7a425c930204950f6b75ce4afce18d34cbd21cef3ed116c9f2d"
+  }
+}

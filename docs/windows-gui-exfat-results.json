@@ -1,0 +1,28 @@
+{
+    "schema_version":  1,
+    "status":  "pass",
+    "platform":  "native Windows x64",
+    "framework":  "WinUI 3 / .NET 8",
+    "filesystem":  "exFAT",
+    "checks":  [
+                   "native_window_loaded_and_dependencies_ready",
+                   "expected_partition_presented",
+                   "experimental_filesystem_initially_read_only",
+                   "experimental_toggle_enables_filesystem_edits",
+                   "import_refreshes_visible_file_list",
+                   "client_file_export_bytes_match",
+                   "persistent_session_resume_restores_view",
+                   "gui_edit_and_export_completed_without_error",
+                   "controls_reenabled_after_async_work",
+                   "rename_action_available_for_selected_regular_file",
+                   "backend_error_is_visible_in_infobar",
+                   "failed_gui_edit_does_not_advance_checkpoint",
+                   "gui_recovers_after_rejected_operation",
+                   "native_winui_visual_tree_rendered_to_png"
+               ],
+    "error":  null,
+    "limits":  [
+                   "Controller integration and actual XAML rendering; picker and input automation not exercised"
+               ],
+    "source_unchanged":  true
+}

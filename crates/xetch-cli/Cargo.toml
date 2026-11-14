@@ -1,0 +1,15 @@
+[package]
+name = "xetch-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "xetch"
+path = "src/main.rs"
+
+[dependencies]
+xetch-core = { path = "../xetch-core" }
+clap.workspace = true
+serde_json.workspace = true

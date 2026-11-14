@@ -1,0 +1,183 @@
+name: Rust and disk-image validation
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  portable:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - run: cargo fmt --all -- --check --config-path rustfmt.toml
+      - run: cargo clippy --locked --workspace --all-targets -- -D warnings
+      - run: cargo test --locked --workspace
+  disk-images:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: sudo apt-get update && sudo apt-get install -y qemu-utils qemu-system-common dosfstools mtools e2fsprogs ntfs-3g exfatprogs gcc-mingw-w64-x86-64 pkg-config
+      - run: python3 scripts/p0_validate.py --output artifacts/p0.json
+      - run: cargo test --locked -p xetch-core --test backend -- --include-ignored --test-threads=1
+      - run: cargo build --locked --release
+      - run: python3 scripts/build_ntfs_worker.py
+      - run: python3 scripts/ntfs_validate.py --directory artifacts/ntfs-linux --output artifacts/ntfs-linux-results.json --large-volume
+      - run: python3 scripts/build_ntfs_worker.py --target windows
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-ntfs-worker
+          path: |
+            target/windows/release/xetch-ntfs-worker.exe
+            target/windows/release/ntfs-worker-profile.json
+            target/windows/release/ntfs-worker-licenses/
+            target/windows/release/ntfs-worker-source/
+      - run: python3 scripts/cli_validate.py --binary target/release/xetch --output artifacts/cli.json
+      - run: python3 scripts/fat_validate.py --directory artifacts/fat-linux --output artifacts/fat-linux-results.json
+      - run: python3 scripts/filesystems_validate.py --fixtures artifacts/fs-fixtures --results-dir artifacts/fs-linux --output artifacts/filesystems-linux.json
+      - name: exFAT and ext4 interoperability and rollback matrix
+        run: |
+          python3 scripts/extended_validate.py --directory artifacts/extended-linux --output artifacts/extended-linux-results.json
+          python3 scripts/extended_validate.py --directory artifacts/extended-linux-1k --ext-block-size 1024 --output artifacts/extended-linux-1k-results.json
+      - name: Native exFAT and ext4 formatting matrix
+        run: python3 scripts/format_validate.py --directory artifacts/format-linux --large-volume --output artifacts/format-linux-results.json
+      - run: cargo run --locked --release -p xetch-core --example ntfs_write_probe -- artifacts/fs-fixtures/ntfs.img > artifacts/ntfs-candidate-linux.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: filesystem-fixtures
+          path: artifacts/fs-fixtures/
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: validation-results
+          path: artifacts/*.json
+  windows-images:
+    needs: disk-images
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/download-artifact@v4
+        with:
+          name: filesystem-fixtures
+          path: artifacts/fs-fixtures
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-ntfs-worker
+          path: target/release
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Prepare project-local UTF-8 QEMU profile
+        shell: pwsh
+        run: ./scripts/windows_prepare_qemu.ps1
+      - name: Native tests and release build
+        shell: pwsh
+        run: |
+          $env:XETCH_QEMU_IMG = "$env:GITHUB_WORKSPACE/artifacts/windows/qemu/qemu-img.exe"
+          $env:XETCH_QEMU_STORAGE_DAEMON = "$env:GITHUB_WORKSPACE/artifacts/windows/qemu/qemu-storage-daemon.exe"
+          cargo test --locked --workspace -- --include-ignored --test-threads=1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cargo build --locked --release
+      - name: Windows P0 validation
+        shell: pwsh
+        run: ./scripts/windows_validate.ps1 -Binary target/release/xetch.exe -QemuDirectory artifacts/windows/qemu -Output artifacts/windows/p0-results.json
+      - name: Native Windows filesystem validation
+        shell: pwsh
+        run: ./scripts/windows_filesystems_validate.ps1 -Binary target/release/xetch.exe -QemuDirectory artifacts/windows/qemu -Fixtures artifacts/fs-fixtures -ResultsDirectory artifacts/windows/filesystems -Output artifacts/windows/filesystems-results.json
+      - name: Native Windows exFAT and ext4 creation and edit matrix
+        run: python scripts/format_validate.py --binary target/release/xetch.exe --directory artifacts/windows/format-validation --produce-only --output artifacts/windows/format-producer-results.json
+      - name: Build WinUI frontend
+        shell: pwsh
+        run: ./scripts/windows_build_gui.ps1
+      - name: Build and run native GUI integration variant
+        shell: pwsh
+        run: |
+          ./scripts/windows_build_gui.ps1 -SmokeTests -OutputDirectory target/gui/windows-smoke
+          ./scripts/windows_gui_validate.ps1 -Binary target/gui/windows-smoke/xEtch.Windows.exe -Backend target/release/xetch.exe -Image artifacts/fs-fixtures/ntfs.img -Directory artifacts/windows/gui-validation/ntfs -Output artifacts/windows/gui-results.json
+          ./scripts/windows_gui_validate.ps1 -Binary target/gui/windows-smoke/xEtch.Windows.exe -Backend target/release/xetch.exe -Image artifacts/fs-fixtures/exfat.img -FileSystem exFAT -Directory artifacts/windows/gui-validation/exfat -Output artifacts/windows/gui-exfat-results.json
+          ./scripts/windows_gui_validate.ps1 -Binary target/gui/windows-smoke/xEtch.Windows.exe -Backend target/release/xetch.exe -Image artifacts/fs-fixtures/ext4.img -FileSystem ext4 -Directory artifacts/windows/gui-validation/ext4 -Output artifacts/windows/gui-ext4-results.json
+          ./scripts/windows_gui_validate.ps1 -Binary target/gui/windows-smoke/xEtch.Windows.exe -Backend target/release/xetch.exe -FileSystem exFAT -CreateImage -Directory artifacts/windows/gui-created/exfat -Output artifacts/windows/gui-create-exfat-results.json
+          ./scripts/windows_gui_validate.ps1 -Binary target/gui/windows-smoke/xEtch.Windows.exe -Backend target/release/xetch.exe -FileSystem ext4 -CreateImage -Directory artifacts/windows/gui-created/ext4 -Output artifacts/windows/gui-create-ext4-results.json
+          ./scripts/windows_gui_validate.ps1 -Binary target/gui/windows-smoke/xEtch.Windows.exe -Backend target/release/xetch.exe -FileSystem FAT32 -CreateImage -Directory artifacts/windows/gui-created/fat32 -Output artifacts/windows/gui-create-fat32-results.json
+      - name: Reproduce NTFS candidate write gate on a disposable copy
+        shell: pwsh
+        run: |
+          cargo build --locked --release -p xetch-core --example ntfs_write_probe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          . ./scripts/windows_common.ps1
+          $result = Invoke-Tool "$PWD/target/release/examples/ntfs_write_probe.exe" @("$PWD/artifacts/fs-fixtures/ntfs.img")
+          [IO.File]::WriteAllText("$PWD/artifacts/windows/ntfs-candidate-results.json", $result, $utf8)
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-validation-results
+          path: artifacts/windows/*results.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-filesystem-exports
+          path: |
+            artifacts/windows/filesystems/*-saved.img
+            artifacts/windows/filesystems/*-payload.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-gui-exports
+          path: |
+            artifacts/windows/gui-validation/*/gui-saved.img
+            artifacts/windows/gui-validation/*/payload.txt
+            artifacts/windows/gui-validation/*/preview.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-format-exports
+          path: |
+            artifacts/windows/format-validation/producer.json
+            artifacts/windows/format-validation/*/source.img
+            artifacts/windows/format-validation/*/source-raw.img
+            artifacts/windows/format-validation/*/saved.img
+            artifacts/windows/format-validation/*/deleted.img
+            artifacts/windows/format-validation/*/payload.bin
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-gui-created-exports
+          path: |
+            artifacts/windows/gui-created/*/gui-created.img
+            artifacts/windows/gui-created/*/gui-saved.img
+            artifacts/windows/gui-created/*/gui-results.json
+            artifacts/windows/gui-created/*/payload.txt
+  check-windows-exports:
+    needs: windows-images
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-filesystem-exports
+          path: artifacts/windows-exports
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-gui-exports
+          path: artifacts/windows-gui-exports
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-format-exports
+          path: artifacts/windows-format
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-gui-created-exports
+          path: artifacts/windows-gui-created
+      - run: sudo apt-get update && sudo apt-get install -y exfatprogs e2fsprogs ntfs-3g dosfstools mtools
+      - run: python3 scripts/check_windows_exports.py --directory artifacts/windows-exports --gui-directory artifacts/windows-gui-exports --gui-create-directory artifacts/windows-gui-created --gui-create-fat32 --output artifacts/windows-exports-check.json
+      - run: python3 scripts/format_validate.py --check-directory artifacts/windows-format --output artifacts/windows-format-check.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-exports-independent-check
+          path: |
+            artifacts/windows-exports-check.json
+            artifacts/windows-format-check.json

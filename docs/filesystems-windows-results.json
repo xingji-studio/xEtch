@@ -1,0 +1,49 @@
+{
+    "schema_version":  1,
+    "filesystems":  [
+                        {
+                            "filesystem":  "exfat",
+                            "status":  "pass",
+                            "raw_output":  "C:\\users\\guoqifish\\desktop\\develop\\xetch\\artifacts\\windows\\filesystems-v2\\exfat-saved.img",
+                            "checks":  [
+                                           "read",
+                                           "mkdir_put_replace_remove",
+                                           "file_rename_and_move",
+                                           "raw_and_vmdk_export",
+                                           "readback",
+                                           "nonempty_directory_rename_and_move"
+                                       ],
+                            "experimental_write":  true
+                        },
+                        {
+                            "filesystem":  "ext4",
+                            "status":  "pass",
+                            "raw_output":  "C:\\users\\guoqifish\\desktop\\develop\\xetch\\artifacts\\windows\\filesystems-v2\\ext4-saved.img",
+                            "checks":  [
+                                           "read",
+                                           "mkdir_put_replace_remove",
+                                           "file_rename_and_move",
+                                           "raw_and_vmdk_export",
+                                           "readback",
+                                           "nonempty_directory_rename_and_move"
+                                       ],
+                            "experimental_write":  true
+                        },
+                        {
+                            "filesystem":  "ntfs",
+                            "status":  "pass",
+                            "raw_output":  "C:\\users\\guoqifish\\desktop\\develop\\xetch\\artifacts\\windows\\filesystems-v2\\ntfs-saved.img",
+                            "checks":  [
+                                           "read",
+                                           "mkdir_put_replace_remove",
+                                           "file_rename_and_move",
+                                           "raw_and_vmdk_export",
+                                           "readback"
+                                       ],
+                            "experimental_write":  false
+                        }
+                    ],
+    "host":  "Microsoft Windows NT 10.0.26200.0",
+    "runtime":  "native Windows x86_64",
+    "status":  "pass"
+}

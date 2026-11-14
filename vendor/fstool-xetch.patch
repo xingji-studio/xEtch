@@ -1,0 +1,543 @@
+--- a/src/fs/exfat/hosted.rs
++++ b/src/fs/exfat/hosted.rs
+@@ -21,6 +21,7 @@
+ use alloc::string::{String, ToString};
+ use alloc::vec;
+ use alloc::vec::Vec;
++use core::cell::RefCell;
+ // These were sibling modules when this file was the module root; it is now
+ // one half of it, so they are mounted here by path. They reach into
+ // `Exfat`'s internals, so they must stay its descendants — and `super`
+@@ -112,6 +113,8 @@
+     /// through or created (child first cluster → parent first cluster).
+     /// Lets a grown directory's entry set be found without a tree search.
+     dir_parents: BTreeMap<u32, u32>,
++    /// Directory stream descriptors, including Windows' contiguous directories.
++    dir_streams: RefCell<BTreeMap<u32, (bool, u64)>>,
+     /// Directories whose cluster chain grew (first cluster → new byte
+     /// length) and whose DataLength / ValidDataLength in the parent's
+     /// entry set still says otherwise. Applied once every batch is on
+@@ -193,6 +196,7 @@
+             bitmap_dirty: false,
+             dir_batch: DirBatch::new(DEFAULT_CAPACITY),
+             dir_parents: BTreeMap::new(),
++            dir_streams: RefCell::new(BTreeMap::new()),
+             dir_len_patches: BTreeMap::new(),
+         };
+         let root_bytes = tmp.read_chain_bytes(
+@@ -313,6 +317,7 @@
+             bitmap_dirty: false,
+             dir_batch: DirBatch::new(DEFAULT_CAPACITY),
+             dir_parents: BTreeMap::new(),
++            dir_streams: RefCell::new(BTreeMap::new()),
+             dir_len_patches: BTreeMap::new(),
+         })
+     }
+@@ -350,10 +355,9 @@
+         path: &str,
+     ) -> Result<Vec<crate::fs::DirEntry>> {
+         let dir_cluster = self.resolve_dir(dev, path)?;
+-        // For directories we don't know the byte length up-front; read
+-        // the whole cluster chain (directories are not marked NoFatChain
+-        // in practice — they grow via the FAT).
+-        let bytes = self.read_chain_bytes(dev, dir_cluster, false, None)?;
++        // Path traversal records stream metadata so contiguous directories
++        // use their data length rather than unused FAT entries.
++        let bytes = self.read_dir_bytes(dev, dir_cluster)?;
+         let mut out = Vec::new();
+         for entry in iter_file_sets(&bytes)? {
+             let kind = if entry.is_directory {
+@@ -415,7 +419,7 @@
+     fn resolve_dir(&self, dev: &mut dyn BlockDevice, path: &str) -> Result<u32> {
+         let mut cluster = self.boot.first_cluster_of_root_directory;
+         for part in split_path(path) {
+-            let bytes = self.read_chain_bytes(dev, cluster, false, None)?;
++            let bytes = self.read_dir_bytes(dev, cluster)?;
+             let entries = iter_file_sets(&bytes)?;
+             let next = entries
+                 .into_iter()
+@@ -430,6 +434,7 @@
+                     "exfat: {part:?} is not a directory"
+                 )));
+             }
++            self.remember_directory(&next);
+             cluster = next.first_cluster;
+         }
+         Ok(cluster)
+@@ -447,7 +452,7 @@
+         let mut cluster = self.boot.first_cluster_of_root_directory;
+         let (last, prefix) = parts.split_last().unwrap();
+         for part in prefix {
+-            let bytes = self.read_chain_bytes(dev, cluster, false, None)?;
++            let bytes = self.read_dir_bytes(dev, cluster)?;
+             let entries = iter_file_sets(&bytes)?;
+             let next = entries
+                 .into_iter()
+@@ -462,18 +467,21 @@
+                     "exfat: {part:?} is not a directory"
+                 )));
+             }
++            self.remember_directory(&next);
+             cluster = next.first_cluster;
+         }
+-        let bytes = self.read_chain_bytes(dev, cluster, false, None)?;
++        let bytes = self.read_dir_bytes(dev, cluster)?;
+         let entries = iter_file_sets(&bytes)?;
+         let found = entries
+             .into_iter()
+             .find(|e| self.name_matches(&e.name_utf16, last))
+             .ok_or_else(|| {
+-                crate::Error::InvalidArgument(format!(
+-                    "exfat: no such entry {last:?} under {path:?}"
++                crate::Error::Io(crate::io::Error::new(
++                    crate::io::ErrorKind::NotFound,
++                    format!("exfat: no such entry {last:?} under {path:?}"),
+                 ))
+             })?;
++        self.remember_directory(&found);
+         Ok((found, cluster))
+     }
+ 
+@@ -619,6 +627,7 @@
+     ) -> Result<RootMetadata> {
+         let mut volume_label = String::new();
+         let mut upcase = Upcase::ascii();
++        let mut found_upcase = false;
+         let mut bitmap_info: Option<(u32, u64)> = None;
+ 
+         let mut i = 0;
+@@ -636,7 +645,7 @@
+                 RawSlot::UpcaseTable {
+                     first_cluster,
+                     data_length,
+-                    ..
++                    checksum,
+                 } => {
+                     // Read DataLength bytes from the up-case table's
+                     // cluster chain. The up-case table is typically a
+@@ -648,10 +657,18 @@
+                         /* no_fat_chain */ false,
+                         Some(data_length),
+                     )?;
+-                    upcase = match Upcase::decode(&raw, data_length) {
+-                        Ok(u) => u,
+-                        Err(_) => Upcase::ascii(),
+-                    };
++                    if upcase::table_checksum(&raw) != checksum {
++                        return Err(crate::Error::InvalidImage(
++                            "exfat: upcase checksum mismatch".into(),
++                        ));
++                    }
++                    upcase = Upcase::decode(&raw, data_length)?;
++                    if upcase.len() < 128 {
++                        return Err(crate::Error::InvalidImage(
++                            "exfat: incomplete mandatory upcase mappings".into(),
++                        ));
++                    }
++                    found_upcase = true;
+                     i += ENTRY_SIZE;
+                 }
+                 RawSlot::AllocationBitmap {
+@@ -674,6 +691,11 @@
+                 }
+             }
+         }
++        if !found_upcase {
++            return Err(crate::Error::InvalidImage(
++                "exfat: missing upcase table".into(),
++            ));
++        }
+         Ok(RootMetadata {
+             volume_label,
+             upcase,
+@@ -834,15 +856,63 @@
+         Ok(())
+     }
+ 
+-    /// Walk the FAT chain of a directory and collect every cluster.
++    /// Collect a directory's clusters using its stream allocation mode.
+     fn dir_chain(&self, first_cluster: u32) -> Result<Vec<u32>> {
++        if let Some((true, len)) = self.dir_streams.borrow().get(&first_cluster).copied() {
++            return self.build_data_chain(first_cluster, true, len);
++        }
+         self.fat.chain(first_cluster, self.boot.cluster_count)
+     }
+ 
+-    /// Read the entire byte content of a directory (all its clusters in
+-    /// FAT order).
++    /// Read the directory using its contiguous stream or FAT chain.
+     fn read_dir_bytes(&self, dev: &mut dyn BlockDevice, first_cluster: u32) -> Result<Vec<u8>> {
++        if let Some((true, len)) = self.dir_streams.borrow().get(&first_cluster).copied() {
++            return self.read_chain_bytes(dev, first_cluster, true, Some(len));
++        }
+         self.read_chain_bytes(dev, first_cluster, false, None)
++    }
++
++    pub(super) fn remember_directory(&self, entry: &FileEntrySet) {
++        if entry.is_directory {
++            self.dir_streams.borrow_mut().insert(
++                entry.first_cluster,
++                (entry.no_fat_chain(), entry.data_length),
++            );
++        }
++    }
++
++    /// Before growing a contiguous directory, materialize its existing run as
++    /// a FAT chain and clear NoFatChain in its own parent entry. No data moves.
++    fn ensure_fat_directory(&mut self, dev: &mut dyn BlockDevice, cluster: u32) -> Result<()> {
++        let hint = self.dir_streams.borrow().get(&cluster).copied();
++        let Some((true, len)) = hint else {
++            return Ok(());
++        };
++        let chain = self.build_data_chain(cluster, true, len)?;
++        if chain.is_empty() {
++            return Err(crate::Error::InvalidImage(
++                "exfat: empty contiguous directory".into(),
++            ));
++        }
++        self.require_allocation_bitmap()?;
++        for (i, &current) in chain.iter().enumerate() {
++            self.fat
++                .set_raw(current, chain.get(i + 1).copied().unwrap_or(fat::EOC));
++        }
++        self.fat_dirty = true;
++        self.dir_streams.borrow_mut().insert(cluster, (false, len));
++        let parent = match self.dir_parents.get(&cluster).copied() {
++            Some(parent) => parent,
++            None => self.find_parent_of_dir(dev, cluster)?.ok_or_else(|| {
++                crate::Error::InvalidImage("exfat: contiguous directory parent not found".into())
++            })?,
++        };
++        if !self.patch_dir_entry_length(dev, parent, cluster, len)? {
++            return Err(crate::Error::InvalidImage(
++                "exfat: contiguous directory entry not found".into(),
++            ));
++        }
++        Ok(())
+     }
+ 
+     /// Resolve a path to the cluster of the *parent directory* of the
+@@ -869,7 +939,10 @@
+                 .into_iter()
+                 .find(|e| self.name_matches(&e.name_utf16, part))
+             {
+-                Some(e) => (e.first_cluster, e.is_directory),
++                Some(e) => {
++                    self.remember_directory(&e);
++                    (e.first_cluster, e.is_directory)
++                }
+                 None => self.pending_child(cluster, part).ok_or_else(|| {
+                     crate::Error::InvalidArgument(format!(
+                         "exfat: no such entry {part:?} under {path:?}"
+@@ -967,6 +1040,7 @@
+                     if set.is_directory && set.first_cluster == dir {
+                         let mut set_bytes = bytes[i..i + total].to_vec();
+                         let stream = ENTRY_SIZE;
++                        set_bytes[stream + 1] &= !dir::SECFLAG_NO_FAT_CHAIN;
+                         set_bytes[stream + 8..stream + 16].copy_from_slice(&len.to_le_bytes());
+                         set_bytes[stream + 24..stream + 32].copy_from_slice(&len.to_le_bytes());
+                         let csum = dir::set_checksum(&set_bytes);
+@@ -1008,6 +1082,7 @@
+                 if e.first_cluster == target {
+                     return Ok(Some(cur));
+                 }
++                self.remember_directory(&e);
+                 if !visited.contains(&e.first_cluster) {
+                     stack.push(e.first_cluster);
+                 }
+@@ -1044,6 +1119,7 @@
+         if entries.is_empty() {
+             return Ok(());
+         }
++        self.ensure_fat_directory(dev, first_cluster)?;
+         let mut combined = Vec::new();
+         for e in &entries {
+             combined.extend_from_slice(&e.bytes);
+@@ -1150,6 +1226,7 @@
+                     }
+                     let set = dir::parse_file_set(&bytes[i..i + total])?;
+                     if self.name_matches(&set.name_utf16, name) {
++                        self.remember_directory(&set);
+                         return Ok(Some((i as u64, set, total)));
+                     }
+                     i += total;
+@@ -1424,6 +1501,101 @@
+         self.create_dir_in(dev, parent_cluster, &name, timestamp)
+     }
+ 
++    /// Move an entry set while retaining its data allocation and metadata.
++    /// The caller must isolate failures in a disposable transaction layer.
++    pub fn rename_path(
++        &mut self,
++        dev: &mut dyn BlockDevice,
++        old_path: &str,
++        new_path: &str,
++    ) -> Result<()> {
++        self.require_allocation_bitmap()?;
++        self.flush_dir_batches(dev)?;
++        let (old_parent, old_name) = self.split_path_for_create(dev, old_path)?;
++        let (old_pos, set, total) = self
++            .find_entry_in_dir(dev, old_parent, old_name)?
++            .ok_or_else(|| {
++                crate::Error::Io(crate::io::Error::new(
++                    crate::io::ErrorKind::NotFound,
++                    "exfat: rename source does not exist",
++                ))
++            })?;
++        let (new_parent, new_name) = self.split_path_for_create(dev, new_path)?;
++        validate_name(new_name)?;
++        if let Some((pos, _, _)) = self.find_entry_in_dir(dev, new_parent, new_name)? {
++            // The volume's own up-case table identifies case-only renames.
++            if new_parent != old_parent || pos != old_pos {
++                return Err(crate::Error::Io(crate::io::Error::new(
++                    crate::io::ErrorKind::AlreadyExists,
++                    "exfat: rename destination exists",
++                )));
++            }
++        }
++        if set.is_directory {
++            let mut ancestor = new_parent;
++            let mut visited = BTreeSet::new();
++            while ancestor != self.boot.first_cluster_of_root_directory {
++                if ancestor == set.first_cluster || !visited.insert(ancestor) {
++                    return Err(crate::Error::InvalidArgument(
++                        "exfat: cannot move a directory into itself or its descendants".into(),
++                    ));
++                }
++                ancestor = *self.dir_parents.get(&ancestor).ok_or_else(|| {
++                    crate::Error::InvalidImage("exfat: unresolved parent ancestry".into())
++                })?;
++            }
++        }
++        let original = self.read_dir_bytes(dev, old_parent)?;
++        let raw = original
++            .get(old_pos as usize..old_pos as usize + total)
++            .ok_or_else(|| {
++                crate::Error::InvalidImage("exfat: rename source entry exceeds directory".into())
++            })?;
++        let names = format::make_file_entry_set(
++            new_name,
++            set.is_directory,
++            set.secondary_flags,
++            set.first_cluster,
++            set.data_length,
++            set.valid_data_length,
++            set.create_timestamp,
++            self.name_hash_for(new_name),
++        )?;
++        // Keep original primary/stream fields (including attributes, timestamps,
++        // UTC offsets, ValidDataLength and NoFatChain). Replace names only.
++        let mut bytes = raw[..2 * ENTRY_SIZE].to_vec();
++        bytes.extend_from_slice(&names[2 * ENTRY_SIZE..]);
++        for entry in raw[2 * ENTRY_SIZE..].chunks_exact(ENTRY_SIZE) {
++            if entry[0] != dir::ENTRY_FILE_NAME {
++                bytes.extend_from_slice(entry);
++            }
++        }
++        bytes[1] = u8::try_from(bytes.len() / ENTRY_SIZE - 1).map_err(|_| {
++            crate::Error::InvalidArgument("exfat: too many secondary entries".into())
++        })?;
++        bytes[ENTRY_SIZE + 3] = new_name.encode_utf16().count() as u8;
++        bytes[ENTRY_SIZE + 4..ENTRY_SIZE + 6]
++            .copy_from_slice(&self.name_hash_for(new_name).to_le_bytes());
++        let checksum = dir::set_checksum(&bytes);
++        bytes[2..4].copy_from_slice(&checksum.to_le_bytes());
++        self.stage_dir_entry(
++            dev,
++            new_parent,
++            PendingEntry {
++                bytes,
++                name: new_name.to_string(),
++                first_cluster: set.first_cluster,
++                is_dir: set.is_directory,
++            },
++        )?;
++        self.flush_dir_batches(dev)?;
++        self.clear_entry_set(dev, old_parent, old_pos, total)?;
++        if set.is_directory {
++            self.note_parent(set.first_cluster, new_parent);
++        }
++        Ok(())
++    }
++
+     /// Remove the entry at `path`. For directories, fails if non-empty.
+     pub fn remove(&mut self, dev: &mut dyn BlockDevice, path: &str) -> Result<()> {
+         let parts = split_path(path);
+@@ -1452,6 +1624,7 @@
+                     "exfat: {part:?} is not a directory"
+                 )));
+             }
++            self.remember_directory(&next);
+             parent_cluster = next.first_cluster;
+         }
+         let (pos, set, total) = self
+@@ -1553,6 +1726,7 @@
+                     "exfat: {part:?} is not a directory"
+                 )));
+             }
++            self.remember_directory(&next);
+             parent_cluster = next.first_cluster;
+         }
+ 
+@@ -1724,6 +1898,21 @@
+             .to_str()
+             .ok_or_else(|| crate::Error::InvalidArgument("exfat: non-UTF-8 path".into()))?;
+         Exfat::remove(self, dev, s)
++    }
++
++    fn rename(
++        &mut self,
++        dev: &mut dyn BlockDevice,
++        old_path: &crate::path::Path,
++        new_path: &crate::path::Path,
++    ) -> Result<()> {
++        let old = old_path
++            .to_str()
++            .ok_or_else(|| crate::Error::InvalidArgument("exfat: non-UTF-8 source".into()))?;
++        let new = new_path
++            .to_str()
++            .ok_or_else(|| crate::Error::InvalidArgument("exfat: non-UTF-8 destination".into()))?;
++        self.rename_path(dev, old, new)
+     }
+ 
+     fn list(
+--- a/src/fs/exfat/rw.rs
++++ b/src/fs/exfat/rw.rs
+@@ -514,6 +514,7 @@
+                 )));
+             }
+             self.note_parent(next.first_cluster, parent_cluster);
++            self.remember_directory(&next);
+             parent_cluster = next.first_cluster;
+         }
+ 
+@@ -609,6 +610,7 @@
+                     "exfat: {part:?} is not a directory"
+                 )));
+             }
++            self.remember_directory(&next);
+             parent_cluster = next.first_cluster;
+         }
+         let (pos, set, total) = self
+--- a/src/fs/exfat/upcase.rs
++++ b/src/fs/exfat/upcase.rs
+@@ -72,9 +72,16 @@
+         let mut table: Vec<u16> = Vec::new();
+         let mut i = 0usize;
+         while i + 2 <= slice.len() {
++            if table.len() >= 0x1_0000 {
++                return Err(crate::Error::InvalidImage(
++                    "exfat: upcase table exceeds UTF-16 range".into(),
++                ));
++            }
+             let v = u16::from_le_bytes(slice[i..i + 2].try_into().unwrap());
+             i += 2;
+-            if v == 0xFFFF {
++            // U+FFFF at the last BMP slot is a literal identity mapping,
++            // not an escape. Microsoft's standard compressed table ends so.
++            if v == 0xFFFF && table.len() != 0xffff {
+                 // Expect a count u16; identity-fill that many slots.
+                 if i + 2 > slice.len() {
+                     return Err(crate::Error::InvalidImage(
+@@ -87,9 +94,9 @@
+                 // count==0 is technically legal as "fill zero identities" —
+                 // benign, but unusual. Cap the total table size to a sane
+                 // limit so a malformed image can't allocate forever.
+-                if base + count > 0x11_0000 {
++                if base + count > 0x1_0000 {
+                     return Err(crate::Error::InvalidImage(
+-                        "exfat: upcase table exceeds 0x110000 entries".into(),
++                        "exfat: upcase table exceeds 65536 entries".into(),
+                     ));
+                 }
+                 for k in 0..count {
+--- a/src/fs/ext/layout.rs
++++ b/src/fs/ext/layout.rs
+@@ -427,7 +427,7 @@
+     let mut groups: Vec<GroupLayout> = Vec::with_capacity(num_groups as usize);
+     for g in 0..num_groups {
+         let start = first_data_block + g * blocks_per_group;
+-        let nominal_end = start + blocks_per_group - 1;
++        let nominal_end = start.saturating_add(blocks_per_group - 1);
+         let end = nominal_end.min(blocks_count - 1);
+ 
+         // Whether this group carries a SB+GDT backup. The classic ext2
+--- a/src/fs/ext/mod.rs
++++ b/src/fs/ext/mod.rs
+@@ -1123,7 +1123,8 @@
+         inode.blocks_512 = (blocks + meta_blocks) * (bs / 512);
+ 
+         // Build the JBD2 v2 journal superblock for block 0 of the journal.
+-        let jsb = build_jbd2_superblock(bs, blocks);
++        let mut jsb = build_jbd2_superblock(bs, blocks);
++        jsb[48..64].copy_from_slice(&self.sb.uuid);
+         self.push_data_block(data[0], jsb);
+ 
+         self.push_new_inode(ino, inode);
+@@ -4722,7 +4723,10 @@
+             cur = self
+                 .lookup_dir_entry(dev, cur, comp.as_bytes())?
+                 .ok_or_else(|| {
+-                    crate::Error::InvalidArgument(format!("ext: no such entry {comp:?} in path"))
++                    crate::Error::Io(std::io::Error::new(
++                        std::io::ErrorKind::NotFound,
++                        format!("ext: no such entry {comp:?} in path"),
++                    ))
+                 })?;
+         }
+         Ok(cur)
+@@ -4816,7 +4820,7 @@
+     /// xattrs (pointed at by `inode.file_acl`). Inline entries come
+     /// first to match the kernel's ordering.
+     ///
+-    /// The per-block CRC32C isn't validated here.
++    /// External xattr blocks are checksum-validated when metadata_csum is set.
+     pub fn read_xattrs(&self, dev: &mut dyn BlockDevice, ino: u32) -> Result<Vec<xattr::Xattr>> {
+         let mut out = Vec::new();
+         // Inline xattrs only exist when the on-disk inode is bigger than
+@@ -4829,6 +4833,15 @@
+             let bs = self.layout.block_size as usize;
+             let mut block = vec![0u8; bs];
+             dev.read_at(inode.file_acl as u64 * bs as u64, &mut block)?;
++            if self.has_metadata_csum() {
++                let stored = block[16..20].to_vec();
++                xattr::stamp_checksum(&mut block, self.csum_seed(), inode.file_acl as u64);
++                if block[16..20] != stored {
++                    return Err(crate::Error::InvalidImage(
++                        "ext: xattr block checksum mismatch".into(),
++                    ));
++                }
++            }
+             out.extend(xattr::decode_block(&block)?);
+         }
+         Ok(out)
+--- a/src/fs/ext/xattr.rs
++++ b/src/fs/ext/xattr.rs
+@@ -260,14 +260,14 @@
+     decode_payload(&block[HEADER_SIZE..], block)
+ }
+ 
+-/// Shared core: walk entries in `entries` (terminated by a zero-byte
+-/// name_len) and resolve each entry's value via `value_base[value_offs..]`.
++/// Walk entries until a zero four-byte terminator. ACL namespaces have an
++/// empty suffix and therefore a valid zero name_len with a nonzero namespace.
+ fn decode_payload(entries: &[u8], value_base: &[u8]) -> Result<Vec<Xattr>> {
+     let mut out = Vec::new();
+     let mut pos = 0;
+     while pos + ENTRY_HEADER_SIZE <= entries.len() {
+         let name_len = entries[pos] as usize;
+-        if name_len == 0 {
++        if entries[pos..pos + 4] == [0; 4] {
+             break;
+         }
+         let name_index = entries[pos + 1];
+--- a/src/merge.rs
++++ b/src/merge.rs
+@@ -90,6 +90,7 @@
+     /// after every regular file has been written so the target exists.
+     /// Falls back to `materialise_copy` when the destination FS can't
+     /// represent links.
++    #[cfg_attr(not(unix), allow(dead_code))]
+     HardLink(PathBuf),
+ }
+ 

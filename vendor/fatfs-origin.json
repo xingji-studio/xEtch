@@ -1,0 +1,7 @@
+{
+  "package": "fatfs",
+  "version": "0.3.6",
+  "source": "https://crates.io/crates/fatfs/0.3.6",
+  "archive_sha256": "05669f8e7e2d7badc545c513710f0eba09c2fbef683eb859fd79c46c355048e0",
+  "license": "MIT"
+}
