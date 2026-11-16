@@ -1,0 +1,107 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "verified_at": "2026-11-15T06:05:23.958235+00:00",
+  "cargo_fmt": "pass",
+  "backends": [
+    {
+      "platform": "linux",
+      "status": "pass",
+      "backend_sha256": "8e2781ef66508cedfcb76603143d8cd20426eda502d9ee8d5513d000d3e401cf",
+      "rustc": "rustc 1.100.0 (0ef1bc386 2026-11-09)",
+      "cargo_clippy_warnings_as_errors": "pass",
+      "tests_passed": 27,
+      "tests_ignored": 0,
+      "test_groups": {
+        "cli": 4,
+        "launcher": 5,
+        "core": 12,
+        "qemu_integration": 6
+      }
+    },
+    {
+      "platform": "windows",
+      "status": "pass",
+      "backend_sha256": "703c2cdd1da64ba273cfcb2467a65903761ffeeb849bb3504ba07b727d1e2572",
+      "rustc": "rustc 1.95.0 (59807616e 2026-04-14)",
+      "cargo_clippy_warnings_as_errors": "pass",
+      "tests_passed": 25,
+      "tests_ignored": 0,
+      "test_groups": {
+        "cli": 4,
+        "launcher": 3,
+        "core": 12,
+        "qemu_integration": 6
+      }
+    }
+  ],
+  "metadata_regressions": [
+    {
+      "report": "extended-linux-results.json",
+      "status": "pass",
+      "ext4_block_size": 4096,
+      "sha256": "61ff8fcfb373897e9dda25cf93484b64cd7a94a2034a7e7360ea938dea24d543"
+    },
+    {
+      "report": "extended-linux-1k-results.json",
+      "status": "pass",
+      "ext4_block_size": 1024,
+      "sha256": "612602388778682c5f15a25c491392a8bcdd0aaf6e4b7a41d65d5b100b86f61d"
+    },
+    {
+      "report": "extended-windows-results.json",
+      "status": "pass",
+      "ext4_block_size": 4096,
+      "sha256": "adef30c6d664c852e4fec8a7d7107097541beb96b2aabac361ab4763b4bd8d84"
+    },
+    {
+      "report": "extended-windows-1k-results.json",
+      "status": "pass",
+      "ext4_block_size": 1024,
+      "sha256": "e914deac133d6cf2b1f96913df1bcaa654dd40b418a719b888019576d16c0b67"
+    }
+  ],
+  "additional_checks": [
+    "vendor patch applies to verified upstream archive and reproduces all Rust sources",
+    "PowerShell parser checks for both native driver scripts and common helper",
+    "native process helper output and configurable timeout smoke",
+    "Python syntax checks",
+    "CI YAML parse and validation step presence"
+  ],
+  "remote_ci_executed": false,
+  "gui_regressions": [
+    {
+      "report": "windows-gui-exfat-results.json",
+      "status": "pass",
+      "checks_passed": 15,
+      "independent_fsck_and_file_readback": "pass"
+    },
+    {
+      "report": "windows-gui-ext4-results.json",
+      "status": "pass",
+      "checks_passed": 15,
+      "independent_fsck_and_file_readback": "pass"
+    }
+  ],
+  "gui_verified_at": "2026-11-15T06:13:11.868929+00:00",
+  "native_driver_script_preflight_verified_at": "2026-11-15T07:20:30.439395+00:00",
+  "native_driver_script_preflight": {
+    "wsl_switch_parsing": "pass",
+    "windows_linux_path_conversion_with_spaces": "pass",
+    "copied_linux_backend_in_path_with_spaces": "pass",
+    "non_admin_guard_without_disk_or_directory_side_effects": "pass",
+    "failure_diagnostics_and_retry_runner_survival": "pass",
+    "powershell_syntax_and_process_timeout_smoke": "pass"
+  },
+  "windows_native_driver_validation": {
+    "report": "deep-fs-windows-driver-results.json",
+    "status": "pass",
+    "cases": 3,
+    "check_groups_passed": 21,
+    "native_mount_read_write_dismount_cycles": 8,
+    "read_only_chkdsk_pass_count": 8,
+    "all_remaining_test_vhds_dismounted": true,
+    "elevated_test_runner_exited": true,
+    "report_sha256": "979a751f1118186750fec048f1f31cf3710b8771865543541abcd1f4df564020"
+  }
+}

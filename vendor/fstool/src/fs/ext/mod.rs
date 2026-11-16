@@ -2580,6 +2580,13 @@ impl Ext {
         let mut jsb_buf = vec![0u8; bs as usize];
         self.read_block(dev, jsb_phys, &mut jsb_buf)?;
         let jsb = jbd2::JournalSuperblock::decode(&jsb_buf)?;
+        // Reject checksum-v1 before the oversized-transaction fallback too.
+        // It must not silently bypass the journal writer's feature check.
+        if u32::from_be_bytes(jsb_buf[36..40].try_into().unwrap()) != 0 {
+            return Err(crate::Error::Unsupported(
+                "ext: writing legacy checksum-v1 journals is not supported".into(),
+            ));
+        }
         if jsb.blocksize != bs {
             return Err(crate::Error::InvalidImage(format!(
                 "ext: journal blocksize {} != FS blocksize {bs}",
@@ -2612,8 +2619,8 @@ impl Ext {
         // mke2fs / genext2fs produce exactly this (empty journal) for a
         // freshly-populated image.
         let avail = jsb.maxlen.saturating_sub(jsb.first) as usize;
-        let first_cap = jbd2::descriptor_tag_capacity(bs, true);
-        let next_cap = jbd2::descriptor_tag_capacity(bs, false);
+        let first_cap = jbd2::descriptor_capacity_features(bs, true, jsb.feature_incompat);
+        let next_cap = jbd2::descriptor_capacity_features(bs, false, jsb.feature_incompat);
         let n_descs = if images.len() <= first_cap {
             1
         } else {

@@ -24,7 +24,10 @@ def command(*args, accepted=(0,)):
 
 def digest(path):
     with path.open("rb") as stream:
-        return hashlib.file_digest(stream, "sha256").hexdigest()
+        value = hashlib.sha256()
+        for data in iter(lambda: stream.read(1 << 20), b""):
+            value.update(data)
+        return value.hexdigest()
 
 
 def checksum(data):

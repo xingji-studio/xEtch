@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "platform": "native Windows x64",
+  "framework": "WinUI 3 / .NET 8",
+  "filesystem": "exFAT",
+  "created_image": false,
+  "table": null,
+  "checks": [
+    "native_window_loaded_and_dependencies_ready",
+    "expected_partition_presented",
+    "experimental_filesystem_initially_read_only",
+    "experimental_toggle_enables_filesystem_edits",
+    "import_refreshes_visible_file_list",
+    "client_file_export_bytes_match",
+    "persistent_session_resume_restores_view",
+    "gui_edit_and_export_completed_without_error",
+    "controls_reenabled_after_async_work",
+    "rename_action_available_for_selected_regular_file",
+    "backend_error_is_visible_in_infobar",
+    "failed_gui_edit_does_not_advance_checkpoint",
+    "gui_recovers_after_rejected_operation",
+    "source_image_unchanged_after_gui_edits",
+    "native_winui_visual_tree_rendered_to_png"
+  ],
+  "error": null,
+  "source_unchanged": true,
+  "limits": [
+    "Controller integration and actual XAML rendering; picker and input automation not exercised"
+  ],
+  "backend_sha256": "66e9918b653312cb4a87a93e1cb1ecdc42fa08e473abac5d2704e19e3aebbf44",
+  "frontend_assembly_sha256": "523d5d45db159b05dcbf6fe837acf43fa7a6536f70bd418824c4c92dfe179b40",
+  "validated_at": "2026-11-15T11:48:31.037266+00:00",
+  "source_profile": "Linux-kernel-formatted physically fragmented 64 MiB exFAT volume",
+  "independent_check": {
+    "status": "pass",
+    "host": "Linux",
+    "consistency_command": "artifacts/tools/exfatprogs/usr/sbin/fsck.exfat -n",
+    "payload_sha256": "b740eaaeef346f60f4e404238ab51ba2daf09da25188efdc1509f16363b0f0d0",
+    "export_sha256": "e75e1775be28e470f55f3bbb37648fc4acc735f2c553720d5abe0c97b0ac2bc4",
+    "physical_fragment_runs": 114
+  }
+}

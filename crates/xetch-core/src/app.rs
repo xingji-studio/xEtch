@@ -1,7 +1,9 @@
 use crate::{
     files,
     nbd::{Disk, Window},
-    partition, tools,
+    partition,
+    staging::OutputStage,
+    tools,
     workspace::{sync_dir, Change, Workspace},
     Error, Result,
 };
@@ -138,10 +140,11 @@ pub fn execute(method: &str, value: Value) -> Result<Value> {
                     "image size must be at least 64 MiB and a multiple of 512 bytes".into(),
                 ));
             }
-            output_parent(&p.output)?;
             output_format(&p.output, p.format.as_deref())?;
-            let mut raw = tempfile::NamedTempFile::new()?;
+            let stage = OutputStage::new(&p.output)?;
+            let mut raw = stage.file("raw.img")?;
             raw.as_file().set_len(p.size)?;
+            crate::validation::checkpoint("create.allocated", raw.path())?;
             let (offset, size) =
                 partition::write_table(raw.as_file_mut(), p.size, &p.table, &p.filesystem)?;
             {
@@ -159,7 +162,20 @@ pub fn execute(method: &str, value: Value) -> Result<Value> {
                 volume.flush()?;
             }
             raw.as_file().sync_all()?;
-            publish(raw.path(), "raw", &p.output, p.format.as_deref(), p.size)?;
+            crate::validation::checkpoint("create.formatted", raw.path())?;
+            publish_staged(
+                &stage,
+                raw.path(),
+                "raw",
+                &p.output,
+                p.format.as_deref(),
+                p.size,
+                || Ok(()),
+            )?;
+            drop(raw);
+            stage
+                .finish()
+                .map_err(|e| Error::CommitUncertain(e.to_string()))?;
             Ok(
                 json!({"output":p.output,"size":p.size,"table":p.table,"filesystem":match p.filesystem.as_str() {"exfat"=>"exFAT","ext4"=>"ext4",_=>"FAT32"}}),
             )
@@ -209,12 +225,15 @@ pub fn execute(method: &str, value: Value) -> Result<Value> {
                     .destination
                     .as_deref()
                     .ok_or_else(|| Error::Invalid("destination is required".into()))?;
-                let parent = output_parent(output)?;
-                let mut temp = tempfile::NamedTempFile::new_in(&parent)?;
+                let stage = OutputStage::new(output)?;
+                let mut temp = stage.file("converted")?;
                 let bytes = files::get(disk, p.partition, &p.path, temp.as_file_mut())?;
                 temp.as_file().sync_all()?;
-                temp.persist_noclobber(output).map_err(|e| e.error)?;
-                sync_dir(&parent)?;
+                crate::validation::checkpoint("file_get.copied", temp.path())?;
+                commit_output(temp, output)?;
+                stage
+                    .finish()
+                    .map_err(|e| Error::CommitUncertain(e.to_string()))?;
                 Ok(json!({"destination":output,"bytes":bytes}))
             })
         }
@@ -322,20 +341,6 @@ where
         )),
     }
 }
-fn output_parent(output: &Path) -> Result<PathBuf> {
-    if output.file_name().is_none() || output.try_exists()? || fs::symlink_metadata(output).is_ok()
-    {
-        return Err(Error::Conflict(
-            "output already exists or has no filename; choose a new output path".into(),
-        ));
-    }
-    Ok(fs::canonicalize(
-        output
-            .parent()
-            .filter(|p| !p.as_os_str().is_empty())
-            .unwrap_or(Path::new(".")),
-    )?)
-}
 fn output_format(output: &Path, format: Option<&str>) -> Result<&'static str> {
     match format.unwrap_or_else(|| {
         if output
@@ -371,11 +376,24 @@ fn publish_checked<F: FnOnce() -> Result<()>>(
     size: u64,
     verify: F,
 ) -> Result<()> {
-    let parent = output_parent(output)?;
+    let stage = OutputStage::new(output)?;
+    publish_staged(&stage, source, source_format, output, format, size, verify)?;
+    stage
+        .finish()
+        .map_err(|e| Error::CommitUncertain(e.to_string()))
+}
+#[allow(clippy::too_many_arguments)]
+fn publish_staged<F: FnOnce() -> Result<()>>(
+    stage: &OutputStage,
+    source: &Path,
+    source_format: &str,
+    output: &Path,
+    format: Option<&str>,
+    size: u64,
+    verify: F,
+) -> Result<()> {
     let format = output_format(output, format)?;
-    let temp = tempfile::Builder::new()
-        .prefix(".xetch-export-")
-        .tempfile_in(&parent)?;
+    let temp = stage.file("converted")?;
     let mut args = vec![
         "convert".into(),
         "-f".into(),
@@ -388,13 +406,29 @@ fn publish_checked<F: FnOnce() -> Result<()>>(
     }
     args.extend([source.as_os_str().into(), temp.path().as_os_str().into()]);
     tools::command(&args)?;
+    crate::validation::checkpoint("publish.converted", temp.path())?;
     let info = tools::info(temp.path(), false)?;
     if info.virtual_size != size || info.format != format {
         return Err(Error::Invalid("export validation failed".into()));
     }
     temp.as_file().sync_all()?;
     verify()?;
+    commit_output(temp, output)
+}
+fn commit_output(temp: tempfile::NamedTempFile, output: &Path) -> Result<()> {
+    let parent = fs::canonicalize(
+        output
+            .parent()
+            .filter(|p| !p.as_os_str().is_empty())
+            .unwrap_or(Path::new(".")),
+    )?;
+    crate::validation::checkpoint("publish.before_publish", temp.path())?;
     temp.persist_noclobber(output).map_err(|e| e.error)?;
-    sync_dir(&parent)?;
+    (|| -> Result<()> {
+        crate::validation::checkpoint("publish.published", output)?;
+        sync_dir(&parent)?;
+        crate::validation::checkpoint("publish.directory_synced", output)
+    })()
+    .map_err(|e| Error::CommitUncertain(e.to_string()))?;
     Ok(())
 }

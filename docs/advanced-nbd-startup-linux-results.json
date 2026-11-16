@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "validated_at": "2026-11-15T11:42:18.816347+00:00",
+  "platform": "Linux x64",
+  "backend_sha256": "c5177b232573cf193565bfe105cea6c5d632951edafe829d30073e2a04ded00e",
+  "fault_proxy_sha256": "71a0c3cbfdf44c5c288431a9f3bf18012b59f7f7a28ae9ebe5b92a3d1ed9997a",
+  "cases": [
+    {
+      "mode": "bind-once",
+      "status": "pass",
+      "launches": 2,
+      "ports": [
+        45409,
+        45877
+      ],
+      "checks": [
+        "actual_qemu_startup_diagnostic",
+        "expected_retry_count",
+        "source_unchanged"
+      ]
+    },
+    {
+      "mode": "bind-always",
+      "status": "pass",
+      "launches": 5,
+      "ports": [
+        45717,
+        44817,
+        46343,
+        45107,
+        45953
+      ],
+      "checks": [
+        "actual_qemu_startup_diagnostic",
+        "expected_retry_count",
+        "source_unchanged"
+      ]
+    },
+    {
+      "mode": "startup-error",
+      "status": "pass",
+      "launches": 1,
+      "ports": [
+        45827
+      ],
+      "checks": [
+        "actual_qemu_startup_diagnostic",
+        "expected_retry_count",
+        "source_unchanged"
+      ]
+    }
+  ]
+}

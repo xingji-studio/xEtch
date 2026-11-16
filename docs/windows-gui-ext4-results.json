@@ -1,28 +1,35 @@
 {
-    "schema_version":  1,
-    "status":  "pass",
-    "platform":  "native Windows x64",
-    "framework":  "WinUI 3 / .NET 8",
-    "filesystem":  "ext4",
-    "checks":  [
-                   "native_window_loaded_and_dependencies_ready",
-                   "expected_partition_presented",
-                   "experimental_filesystem_initially_read_only",
-                   "experimental_toggle_enables_filesystem_edits",
-                   "import_refreshes_visible_file_list",
-                   "client_file_export_bytes_match",
-                   "persistent_session_resume_restores_view",
-                   "gui_edit_and_export_completed_without_error",
-                   "controls_reenabled_after_async_work",
-                   "rename_action_available_for_selected_regular_file",
-                   "backend_error_is_visible_in_infobar",
-                   "failed_gui_edit_does_not_advance_checkpoint",
-                   "gui_recovers_after_rejected_operation",
-                   "native_winui_visual_tree_rendered_to_png"
-               ],
-    "error":  null,
-    "limits":  [
-                   "Controller integration and actual XAML rendering; picker and input automation not exercised"
-               ],
-    "source_unchanged":  true
+  "schema_version": 1,
+  "status": "pass",
+  "platform": "native Windows x64",
+  "framework": "WinUI 3 / .NET 8",
+  "filesystem": "ext4",
+  "created_image": false,
+  "table": null,
+  "checks": [
+    "native_window_loaded_and_dependencies_ready",
+    "expected_partition_presented",
+    "experimental_filesystem_initially_read_only",
+    "experimental_toggle_enables_filesystem_edits",
+    "import_refreshes_visible_file_list",
+    "client_file_export_bytes_match",
+    "persistent_session_resume_restores_view",
+    "gui_edit_and_export_completed_without_error",
+    "controls_reenabled_after_async_work",
+    "rename_action_available_for_selected_regular_file",
+    "backend_error_is_visible_in_infobar",
+    "failed_gui_edit_does_not_advance_checkpoint",
+    "gui_recovers_after_rejected_operation",
+    "source_image_unchanged_after_gui_edits",
+    "native_winui_visual_tree_rendered_to_png"
+  ],
+  "error": null,
+  "source_unchanged": true,
+  "limits": [
+    "Controller integration and actual XAML rendering; picker and input automation not exercised"
+  ],
+  "backend_sha256": "703c2cdd1da64ba273cfcb2467a65903761ffeeb849bb3504ba07b727d1e2572",
+  "frontend_test_dll_sha256": "523d5d45db159b05dcbf6fe837acf43fa7a6536f70bd418824c4c92dfe179b40",
+  "validated_at": "2026-11-15T06:13:11.868929+00:00",
+  "independent_fsck_and_file_readback": "pass"
 }

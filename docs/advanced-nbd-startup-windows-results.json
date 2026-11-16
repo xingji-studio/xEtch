@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "validated_at": "2026-11-15T11:42:54.830039+00:00",
+  "platform": "native Windows x64",
+  "backend_sha256": "66e9918b653312cb4a87a93e1cb1ecdc42fa08e473abac5d2704e19e3aebbf44",
+  "fault_proxy_sha256": "40c9ebda7040e5693184f14836dad2fe7e2b27e7f78afc321884069706c454e2",
+  "cases": [
+    {
+      "mode": "bind-once",
+      "status": "pass",
+      "launches": 2,
+      "ports": [
+        63438,
+        53836
+      ],
+      "checks": [
+        "actual_qemu_startup_diagnostic",
+        "expected_retry_count",
+        "source_unchanged"
+      ]
+    },
+    {
+      "mode": "bind-always",
+      "status": "pass",
+      "launches": 5,
+      "ports": [
+        49757,
+        49758,
+        49759,
+        49760,
+        49761
+      ],
+      "checks": [
+        "actual_qemu_startup_diagnostic",
+        "expected_retry_count",
+        "source_unchanged"
+      ]
+    },
+    {
+      "mode": "startup-error",
+      "status": "pass",
+      "launches": 1,
+      "ports": [
+        49762
+      ],
+      "checks": [
+        "actual_qemu_startup_diagnostic",
+        "expected_retry_count",
+        "source_unchanged"
+      ]
+    }
+  ]
+}

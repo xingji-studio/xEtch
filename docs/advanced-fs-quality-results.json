@@ -1,0 +1,154 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "validated_at": "2026-11-15T12:07:54.471812+00:00",
+  "cargo_fmt": "pass",
+  "python_compilation": "pass",
+  "git_diff_check": "pass",
+  "git_diff_check_exclusions": [
+    "pre-existing LICENSE line-ending diff",
+    "unified patch context whitespace in vendor/fstool-xetch.patch"
+  ],
+  "platforms": {
+    "linux": {
+      "status": "pass",
+      "backend_sha256": "c5177b232573cf193565bfe105cea6c5d632951edafe829d30073e2a04ded00e",
+      "validation_binary_sha256": "6f649541e3549d3bba7d89bb14a11583e24478d9f28f0249db1fdd921589d669",
+      "rustc": "1.100.0",
+      "qemu_img": "6.2.0",
+      "clippy": {
+        "status": "pass",
+        "arguments": "--locked --offline --workspace --all-targets --all-features -- -D warnings",
+        "log_sha256": "a989897450540a44a51abaf5f74f5f6342c71b548243fc71f5451214409e2689"
+      },
+      "tests": {
+        "status": "pass",
+        "passed": 30,
+        "failed": 0,
+        "ignored": 0,
+        "arguments": "--locked --offline --workspace --all-features -- --include-ignored --test-threads=1",
+        "boundary_process_tests": 3,
+        "qemu_backend_tests": 6,
+        "log_sha256": "05bda35fec2c2b542f18b32b264d0f1f57c67b54f0853f8f0b196a6844694cd4"
+      },
+      "advanced_validation": {
+        "cases": 11,
+        "check_groups": 229,
+        "commit_boundary_checks": 110,
+        "journal_profiles": 5,
+        "journal_checks": 71,
+        "stress_workload_version": 2,
+        "stress_operations": 4000,
+        "stress_trials": 4,
+        "stress_snapshot_roundtrips": 252,
+        "stress_final_kernel_checks": 4,
+        "report": "docs/advanced-fs-linux-results.json",
+        "report_sha256": "27460e2d5993a56f61341f3f2509037f8e4b8cce8b739629f13bdd82ec93eab0"
+      },
+      "nbd_startup": {
+        "status": "pass",
+        "cases": 3,
+        "check_groups": 9,
+        "report": "docs/advanced-nbd-startup-linux-results.json",
+        "report_sha256": "5aa71e410815b2a7b7dfe6a089bb5e83ad6ccfb8ff1c4b74adf4b40792223ffa"
+      }
+    },
+    "windows": {
+      "status": "pass",
+      "backend_sha256": "66e9918b653312cb4a87a93e1cb1ecdc42fa08e473abac5d2704e19e3aebbf44",
+      "validation_binary_sha256": "df6975fe7b46deb80052127b70ac0fea68216b13042d76536e668d5ff3a4bec7",
+      "rustc": "1.95.0",
+      "qemu_img": "11.1.0",
+      "clippy": {
+        "status": "pass",
+        "arguments": "--locked --offline --workspace --all-targets --all-features -- -D warnings"
+      },
+      "tests": {
+        "status": "pass",
+        "passed": 28,
+        "failed": 0,
+        "ignored": 0,
+        "arguments": "--locked --offline --workspace --all-features -- --include-ignored --test-threads=1",
+        "boundary_process_tests": 3,
+        "qemu_backend_tests": 6,
+        "log_sha256": "70abac0ae4f5752349ecff7f16ff73fba270ad7af249df4cc4db44011a07779d"
+      },
+      "advanced_validation": {
+        "cases": 11,
+        "check_groups": 229,
+        "commit_boundary_checks": 110,
+        "journal_profiles": 5,
+        "journal_checks": 71,
+        "stress_workload_version": 2,
+        "stress_operations": 4000,
+        "stress_trials": 4,
+        "stress_snapshot_roundtrips": 252,
+        "stress_final_kernel_checks": 4,
+        "report": "docs/advanced-fs-windows-results.json",
+        "report_sha256": "9325abfd3bc12956610dd9a67350c25c40dfebb07efc02b5ee6ab0369913c601"
+      },
+      "nbd_startup": {
+        "status": "pass",
+        "cases": 3,
+        "check_groups": 9,
+        "report": "docs/advanced-nbd-startup-windows-results.json",
+        "report_sha256": "8da89831ed02f47fc2756fde4f4408353ce54eb0cfc92ac8301e54a9ee0ed1a5"
+      }
+    }
+  },
+  "windows_gui": [
+    {
+      "filesystem": "exfat",
+      "status": "pass",
+      "checks": 15,
+      "independent_consistency_and_readback": "pass",
+      "report": "docs/advanced-windows-gui-exfat-results.json",
+      "report_sha256": "c8e58d8c9027a7da447aab0c813947d7592e16be49c6223d2b8b94d77ff116d8"
+    },
+    {
+      "filesystem": "ext4",
+      "status": "pass",
+      "checks": 15,
+      "independent_consistency_and_readback": "pass",
+      "report": "docs/advanced-windows-gui-ext4-results.json",
+      "report_sha256": "af285a7e1439b531fccfd0296600d01026aa8807fd1037e1a42c2f659a1b1bc5"
+    }
+  ],
+  "cleanup": {
+    "linux": {
+      "status": "pass",
+      "remaining_test_mounts": [],
+      "remaining_linux_test_processes": []
+    },
+    "windows": {
+      "status": "pass",
+      "remaining_native_test_processes": []
+    }
+  },
+  "total_stress_operations": 8000,
+  "total_stress_snapshot_roundtrips": 504,
+  "total_stress_final_kernel_checks": 8,
+  "stress_seed_operations": 1000,
+  "stress_seeds": [
+    "0x5eed",
+    "0xc0ffee"
+  ],
+  "ci_yaml": "pass",
+  "remote_ci_executed": false,
+  "resolved_findings": [
+    "Recorded and recovered manifest temporaries at the commit boundary.",
+    "Separated Windows staging intent reads from byte-range locks; retained nonce race checks.",
+    "Distinguished errors after publication with commit_uncertain and preserved the published result.",
+    "Supervised qemu-img lifetime and recovered owned staging data without deleting unknown files.",
+    "Reproduced an actual pre-handshake QSD port collision in parallel stress; bounded startup-only retries validated on both platforms.",
+    "Corrected the random-workload directory cap so allocation/deletion churn continues; earlier interrupted, failed or superseded trials excluded from final results."
+  ],
+  "limits": [
+    "Finite seeded stress, not a 24-hour endurance certification.",
+    "Process termination is not physical power loss; Windows directory sync remains a no-op.",
+    "CSUM_V2 clean fixtures are prepared from system-generated journals; real current kernels replay them and upgrade subsequent writes to CSUM_V3. Older-kernel-generated continuously-v2 samples remain untested.",
+    "Ownership-record bootstrap and Windows pre-job-assignment startup races remain outside the tested interruption points.",
+    "GUI tests exercise controllers and actual XAML rendering, not picker or input automation.",
+    "Earlier >4 GiB and Microsoft exFAT-driver reports are historical runs of earlier binaries and were not relabeled as runs of these binaries."
+  ]
+}

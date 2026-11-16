@@ -5,7 +5,7 @@ use std::{
     ffi::OsString,
     fs,
     path::{Path, PathBuf},
-    process::Command,
+    process::{Command, Stdio},
 };
 
 pub fn program(name: &str) -> OsString {
@@ -91,12 +91,19 @@ pub fn command_json(value: &Value) -> String {
 }
 
 pub fn command(args: &[OsString]) -> Result<Vec<u8>> {
-    let output = new_command(program("qemu-img"))
+    let mut command = new_command(program("qemu-img"));
+    command
         .args(args)
-        .output()
-        .map_err(|e| {
-            Error::Dependency(format!("qemu-img: {e}; install QEMU or set XETCH_QEMU_IMG"))
-        })?;
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    let mut child = crate::child::spawn(&mut command).map_err(|e| {
+        Error::Dependency(format!("qemu-img: {e}; install QEMU or set XETCH_QEMU_IMG"))
+    })?;
+    if args.first().is_some_and(|a| a == "convert") {
+        crate::validation::checkpoint("qemu.convert_started", Path::new(args.last().unwrap()))?;
+    }
+    let output = child.output()?;
     if !output.status.success() {
         return Err(Error::Dependency(format!(
             "qemu-img: {}",

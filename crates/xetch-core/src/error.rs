@@ -10,6 +10,8 @@ pub enum Error {
     Conflict(String),
     #[error("{0}")]
     Dependency(String),
+    #[error("the result was published, but final durability/cleanup failed: {0}; inspect the workspace or output before retrying")]
+    CommitUncertain(String),
     #[error(transparent)]
     Io(#[from] std::io::Error),
     #[error(transparent)]
@@ -30,6 +32,7 @@ impl Error {
                 Self::Unsupported(_) => "unsupported",
                 Self::Conflict(_) => "conflict",
                 Self::Dependency(_) => "dependency_failure",
+                Self::CommitUncertain(_) => "commit_uncertain",
                 Self::Io(_) => "io_error",
                 Self::Json(_) => "invalid_json",
             },

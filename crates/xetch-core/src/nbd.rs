@@ -1,30 +1,57 @@
 //! Minimal fixed-newstyle NBD client: sequential simple replies, READ/WRITE/FLUSH.
 //! QEMU is a child process and exposes only a random named export on loopback.
-use crate::{tools, Error, Result};
+use crate::{
+    child::{self, ManagedChild},
+    tools, Error, Result,
+};
 use serde_json::json;
 use std::{
+    collections::VecDeque,
     fs::File,
     io::{self, Read, Seek, SeekFrom, Write},
     net::{TcpListener, TcpStream},
     path::Path,
-    process::{Child, Stdio},
+    process::Stdio,
     thread,
     time::{Duration, Instant},
 };
 
 pub struct Disk {
     stream: TcpStream,
-    child: Child,
+    child: ManagedChild,
     _log: File,
     _startup: tempfile::TempDir,
     pub size: u64,
     pos: u64,
     writable: bool,
     handle: u64,
+    read_cache: VecDeque<(u64, Vec<u8>)>,
+    pending_write: Vec<u8>,
+    pending_offset: u64,
 }
 
 impl Disk {
     pub fn open(path: &Path, format: &str, writable: bool) -> Result<Self> {
+        for attempt in 0..5 {
+            match Self::open_once(path, format, writable) {
+                Err(Error::Dependency(message))
+                    if attempt < 4
+                        && message.contains("QEMU startup:")
+                        && message.contains("--nbd-server")
+                        && message.contains("Failed to find an available port") =>
+                {
+                    // Another process can claim the port after reservation.
+                    // Retry only this pre-handshake bind failure: no filesystem
+                    // request has been sent, and the failed child was reaped.
+                    thread::sleep(Duration::from_millis(20));
+                }
+                result => return result,
+            }
+        }
+        unreachable!("the final startup attempt always returns")
+    }
+
+    fn open_once(path: &Path, format: &str, writable: bool) -> Result<Self> {
         // Bind to port zero to pick an ephemeral port. The named export also
         // prevents connecting to an unrelated server in the reservation gap.
         let listener = TcpListener::bind(("127.0.0.1", 0))?;
@@ -42,7 +69,8 @@ impl Disk {
             .into_owned();
         let node = json!({"driver":format, "node-name":"disk", "read-only": !writable,
             "file":{"driver":"file", "filename":path}});
-        let mut child = tools::new_command(tools::program("qemu-storage-daemon"))
+        let mut command = tools::new_command(tools::program("qemu-storage-daemon"));
+        command
             .args([
                 "--blockdev",
                 &tools::command_json(&node),
@@ -58,13 +86,12 @@ impl Disk {
             .arg(&pidfile)
             .stdin(Stdio::null())
             .stdout(Stdio::null())
-            .stderr(log.try_clone()?)
-            .spawn()
-            .map_err(|e| {
-                Error::Dependency(format!(
-                    "qemu-storage-daemon: {e}; install QEMU or set XETCH_QEMU_STORAGE_DAEMON"
-                ))
-            })?;
+            .stderr(log.try_clone()?);
+        let mut child = child::spawn(&mut command).map_err(|e| {
+            Error::Dependency(format!(
+                "qemu-storage-daemon: {e}; install QEMU or set XETCH_QEMU_STORAGE_DAEMON"
+            ))
+        })?;
         let connected = (|| -> Result<TcpStream> {
             let deadline = Instant::now() + Duration::from_secs(10);
             loop {
@@ -141,6 +168,9 @@ impl Disk {
                 pos: 0,
                 writable,
                 handle: 0,
+                read_cache: VecDeque::new(),
+                pending_write: Vec::new(),
+                pending_offset: 0,
             }),
             Err(e) => {
                 let _ = child.kill();
@@ -180,19 +210,49 @@ impl Disk {
         }
         Ok(())
     }
+
+    fn flush_pending(&mut self) -> io::Result<()> {
+        if !self.pending_write.is_empty() {
+            let data = std::mem::take(&mut self.pending_write);
+            let result = self.request(1, self.pending_offset, data.len() as u32, &data);
+            self.pending_write = data;
+            self.pending_write.clear();
+            result?;
+        }
+        Ok(())
+    }
 }
 
 impl Read for Disk {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        let n = buf
-            .len()
-            .min(1024 * 1024)
-            .min(self.size.saturating_sub(self.pos) as usize);
-        if n == 0 {
+        self.flush_pending()?;
+        if buf.is_empty() || self.pos == self.size {
             return Ok(0);
         }
-        self.request(0, self.pos, n as u32, &[])?;
-        self.stream.read_exact(&mut buf[..n])?;
+        // Filesystem readers ask for one sector/block at a time. Keep a
+        // bounded set of 1 MiB pages so data and hot extent-tree metadata can
+        // coexist without a network roundtrip for every 4 KiB block.
+        const PAGE: u64 = 1024 * 1024;
+        let start = self.pos / PAGE * PAGE;
+        let cached = self
+            .read_cache
+            .iter()
+            .position(|(offset, _)| *offset == start);
+        let (offset, data) = if let Some(index) = cached {
+            self.read_cache.remove(index).expect("cache index exists")
+        } else {
+            let mut data = vec![0; PAGE.min(self.size - start) as usize];
+            self.request(0, start, data.len() as u32, &[])?;
+            self.stream.read_exact(&mut data)?;
+            (start, data)
+        };
+        let within = (self.pos - offset) as usize;
+        let n = buf.len().min(data.len() - within);
+        buf[..n].copy_from_slice(&data[within..within + n]);
+        if self.read_cache.len() == 8 {
+            self.read_cache.pop_front();
+        }
+        self.read_cache.push_back((offset, data));
         self.pos += n as u64;
         Ok(n)
     }
@@ -204,16 +264,26 @@ impl Write for Disk {
         }
         let n = buf
             .len()
-            .min(1024 * 1024)
+            .min(1024 * 1024 - self.pending_write.len())
             .min(self.size.saturating_sub(self.pos) as usize);
         if n == 0 && !buf.is_empty() {
             return Err(io::ErrorKind::WriteZero.into());
         }
-        self.request(1, self.pos, n as u32, &buf[..n])?;
+        if self.pending_write.is_empty() {
+            self.pending_offset = self.pos;
+        }
+        self.read_cache.retain(|(start, data)| {
+            *start + data.len() as u64 <= self.pos || *start >= self.pos + n as u64
+        });
+        self.pending_write.extend_from_slice(&buf[..n]);
         self.pos += n as u64;
+        if self.pending_write.len() == 1024 * 1024 {
+            self.flush_pending()?;
+        }
         Ok(n)
     }
     fn flush(&mut self) -> io::Result<()> {
+        self.flush_pending()?;
         if self.writable {
             self.request(3, 0, 0, &[])?;
         }
@@ -222,7 +292,13 @@ impl Write for Disk {
 }
 impl Seek for Disk {
     fn seek(&mut self, from: SeekFrom) -> io::Result<u64> {
-        self.pos = checked_seek(self.pos, self.size, from)?;
+        let next = checked_seek(self.pos, self.size, from)?;
+        if !self.pending_write.is_empty()
+            && next != self.pending_offset + self.pending_write.len() as u64
+        {
+            self.flush_pending()?;
+        }
+        self.pos = next;
         Ok(self.pos)
     }
 }

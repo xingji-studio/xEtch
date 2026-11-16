@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "platform": "native Windows x64",
+  "ext4_block_size": 1024,
+  "filesystems": [
+    {
+      "filesystem": "exfat",
+      "status": "pass",
+      "checks": [
+        "explicit_write_opt_in_and_checkpoint_guard",
+        "rename_retains_contiguous_stream_attributes_and_valid_data_length",
+        "contiguous_directory_read_move_and_safe_fat_materialization",
+        "nonempty_directory_rename_and_cross_parent_move",
+        "descendant_conflict_nonempty_directory_rollback",
+        "volume_upcase_rules_case_only_rename_and_sharp_s_distinction",
+        "entry_set_growth_and_parent_directory_extension",
+        "partial_write_out_of_space_rollback",
+        "independent_consistency_content_and_metadata_verification",
+        "vmdk_export_readback",
+        "delete_empty_directories_hardlink_release_and_source_unchanged",
+        "invalid_upcase_refused_without_ascii_fallback"
+      ],
+      "source_sha256": "345372aecc52124fc6158ebe2bc95f1c83d89ec1040098a5561431dac34823fa"
+    },
+    {
+      "filesystem": "ext4",
+      "status": "pass",
+      "checks": [
+        "explicit_write_opt_in_and_checkpoint_guard",
+        "rename_retains_inode_ownership_permissions_and_hardlinks",
+        "nonempty_directory_rename_and_cross_parent_move",
+        "descendant_conflict_nonempty_directory_rollback",
+        "case_sensitive_paths_indexed_directory_symlink_and_immutable_guards",
+        "default_acl_setgid_inheritance_and_invalid_acl_rollback",
+        "partial_write_out_of_space_rollback",
+        "independent_consistency_content_and_metadata_verification",
+        "vmdk_export_readback",
+        "delete_empty_directories_hardlink_release_and_source_unchanged",
+        "corrupt_external_xattr_checksum_rejected_before_inheritance",
+        "pending_journal_refused_without_implicit_replay_on_read_or_write"
+      ],
+      "source_sha256": "388b91ab7b2203b88c77a1ccd1e2b2163e0ba5471eec1fb279440542f336f3c0"
+    }
+  ],
+  "format_checks": [
+    "exFAT none/MBR/GPT independent fsck",
+    "complete Unicode up-case table",
+    "partition offset",
+    "non-ASCII case collision"
+  ]
+}

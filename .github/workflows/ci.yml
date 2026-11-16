@@ -64,6 +64,31 @@ jobs:
         with:
           name: validation-results
           path: artifacts/*.json
+  deep-filesystems:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: sudo apt-get update && sudo apt-get install -y qemu-utils qemu-system-common exfatprogs e2fsprogs
+      - run: cargo build --locked --release --workspace --bins --example qsd_fault_proxy
+      - run: cargo build --locked --release -p xetch-cli --features validation-hooks --target-dir target/validation-linux
+      - name: NBD startup collision recovery and retry bound
+        run: python3 scripts/nbd_startup_validate.py --directory artifacts/nbd-startup-linux --output artifacts/nbd-startup-linux-results.json
+      - name: Kernel roundtrips, files above 4 GiB and crash recovery
+        run: python3 scripts/deep_filesystems_validate.py --suite all --directory artifacts/deep-linux --output artifacts/deep-linux-results.json
+      - name: Commit boundaries, fragmented random workloads and legacy journal profiles
+        run: python3 scripts/advanced_filesystems_validate.py --suite all --directory artifacts/advanced-linux --output artifacts/advanced-linux-results.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: deep-filesystem-results
+          path: |
+            artifacts/deep-linux-results.json
+            artifacts/advanced-linux-results.json
+            artifacts/nbd-startup-linux-results.json
   windows-images:
     needs: disk-images
     runs-on: windows-latest
@@ -92,9 +117,13 @@ jobs:
         run: |
           $env:XETCH_QEMU_IMG = "$env:GITHUB_WORKSPACE/artifacts/windows/qemu/qemu-img.exe"
           $env:XETCH_QEMU_STORAGE_DAEMON = "$env:GITHUB_WORKSPACE/artifacts/windows/qemu/qemu-storage-daemon.exe"
-          cargo test --locked --workspace -- --include-ignored --test-threads=1
+          cargo test --locked --workspace --features xetch-cli/validation-hooks -- --include-ignored --test-threads=1
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           cargo build --locked --release
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cargo build --locked --release -p xetch-core --example qsd_fault_proxy
+      - name: Native NBD startup collision recovery and retry bound
+        run: python scripts/nbd_startup_validate.py --binary target/release/xetch.exe --fault-proxy target/release/examples/qsd_fault_proxy.exe --directory artifacts/windows/nbd-startup --output artifacts/windows/nbd-startup-results.json
       - name: Windows P0 validation
         shell: pwsh
         run: ./scripts/windows_validate.ps1 -Binary target/release/xetch.exe -QemuDirectory artifacts/windows/qemu -Output artifacts/windows/p0-results.json
@@ -103,6 +132,9 @@ jobs:
         run: ./scripts/windows_filesystems_validate.ps1 -Binary target/release/xetch.exe -QemuDirectory artifacts/windows/qemu -Fixtures artifacts/fs-fixtures -ResultsDirectory artifacts/windows/filesystems -Output artifacts/windows/filesystems-results.json
       - name: Native Windows exFAT and ext4 creation and edit matrix
         run: python scripts/format_validate.py --binary target/release/xetch.exe --directory artifacts/windows/format-validation --produce-only --output artifacts/windows/format-producer-results.json
+      - name: Microsoft exFAT driver roundtrip and read-only chkdsk
+        shell: pwsh
+        run: ./scripts/windows_exfat_interop_validate.ps1 -WindowsBackend target/release/xetch.exe -SkipLargeFile -Directory artifacts/windows/native-exfat -Output artifacts/windows/native-exfat-results.json
       - name: Build backend and self-contained WinUI portable package
         shell: pwsh
         env:

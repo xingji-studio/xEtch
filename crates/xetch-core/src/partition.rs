@@ -93,13 +93,19 @@ pub fn read<T: Read + Seek>(disk: &mut T, size: u64) -> Result<Layout> {
             partitions: vec![],
         });
     }
-    let protective = mbr[446..510].chunks_exact(16).any(|e| e[4] == 0xee);
+    let protective = mbr[446..510]
+        .as_chunks::<16>()
+        .0
+        .iter()
+        .any(|e| e[4] == 0xee);
     let mut parts = Vec::new();
     let table;
     if protective {
         table = "GPT";
         if mbr[446..510]
-            .chunks_exact(16)
+            .as_chunks::<16>()
+            .0
+            .iter()
             .any(|e| e[4] != 0 && e[4] != 0xee)
         {
             return Err(bad("hybrid MBR is unsupported"));
@@ -129,7 +135,9 @@ pub fn read<T: Read + Seek>(disk: &mut T, size: u64) -> Result<Layout> {
                 return Err(bad("GPT partition outside usable range"));
             }
             let name: Vec<u16> = entry[56..128]
-                .chunks_exact(2)
+                .as_chunks::<2>()
+                .0
+                .iter()
                 .map(|b| u16::from_le_bytes([b[0], b[1]]))
                 .take_while(|c| *c != 0)
                 .collect();
@@ -143,7 +151,7 @@ pub fn read<T: Read + Seek>(disk: &mut T, size: u64) -> Result<Layout> {
         }
     } else {
         table = "MBR";
-        for (i, e) in mbr[446..510].chunks_exact(16).enumerate() {
+        for (i, e) in mbr[446..510].as_chunks::<16>().0.iter().enumerate() {
             if e[4] == 0 {
                 continue;
             }

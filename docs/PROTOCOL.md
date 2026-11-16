@@ -38,6 +38,8 @@
 
 FAT 的 `file.rename` 支持文件移动和同级文件夹改名；跨父目录移动文件夹返回 unsupported。exFAT/ext4 支持文件与带内容目录的改名和跨父目录移动，沿用实验开关，拒绝移入自身后代及覆盖已有目标。exFAT 按卷 up-case 表判断名称，允许仅改变大小写；ext4 区分大小写。NTFS 支持文件改名/移动，目录改名返回 unsupported。NTFS 拒绝系统元数据路径、脏卷、休眠卷和压缩/EFS/reparse 文件修改，详见 [NTFS 支持边界](NTFS.md)。exFAT/ext4 的连续分配、日志及元数据限制见 [支持说明](EXFAT-EXT4.md)。
 
-JSON-RPC 错误：-32700 解析失败，-32600 请求结构错误，-32601 方法不存在，-32602 参数错误，-32000 操作失败。业务码包括 invalid_argument、unsupported、conflict、dependency_failure、io_error、invalid_json。
+JSON-RPC 错误：-32700 解析失败，-32600 请求结构错误，-32601 方法不存在，-32602 参数错误，-32000 操作失败。业务码包括 invalid_argument、unsupported、conflict、dependency_failure、io_error、invalid_json、commit_uncertain。
+
+`commit_uncertain` 表示 manifest 或输出已经原子发布，但后续同步或清理失败。调用方应先用 `workspace.plan`（CLI 为 `workspace info` / `plan`）或检查输出确认结果，再决定后续操作；不能假设已回滚或直接重复修改。对应 CLI 退出码为 4。
 
 CLI 退出码：0 成功；2 参数错误（含 clap 参数解析）；3 不支持；4 I/O 或依赖错误；5 会话或内容冲突。应用错误以 JSON 写入 stderr；clap 的帮助、参数错误采用其标准文本格式。`--json` 输出紧凑 JSON，默认输出缩进 JSON。

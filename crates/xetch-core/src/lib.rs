@@ -7,8 +7,11 @@ mod files;
 mod nbd;
 mod ntfs;
 mod partition;
+mod staging;
 mod tools;
+mod validation;
 mod workspace;
 
 pub use app::execute;
 pub use error::{Error, ErrorBody, Result};
+pub mod child;

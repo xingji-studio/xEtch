@@ -1,0 +1,149 @@
+{
+  "large_file_requested": true,
+  "finished_at": "2026-11-15T07:42:28.2570948Z",
+  "schema_version": 1,
+  "driver": "Microsoft Windows exFAT",
+  "cases": [
+    {
+      "backend": "windows",
+      "suite": "windows-driver-roundtrip",
+      "status": "pass",
+      "checks": [
+        "windows_format_and_driver_write",
+        "backend_read_and_edit",
+        "windows_driver_full_hash_and_write",
+        "backend_reads_returned_file",
+        "windows_mounts_backend_formatted_exfat",
+        "read_only_chkdsk_after_each_mount",
+        "original_source_unchanged"
+      ]
+    },
+    {
+      "backend": "linux",
+      "suite": "windows-driver-roundtrip",
+      "status": "pass",
+      "checks": [
+        "windows_format_and_driver_write",
+        "backend_read_and_edit",
+        "windows_driver_full_hash_and_write",
+        "backend_reads_returned_file",
+        "windows_mounts_backend_formatted_exfat",
+        "read_only_chkdsk_after_each_mount",
+        "original_source_unchanged"
+      ]
+    },
+    {
+      "backend": "windows",
+      "checks": [
+        "windows_formats_and_streams_full_large_file",
+        "backend_full_hash_of_windows_created_file",
+        "backend_overwrites_and_renames_large_file",
+        "windows_driver_full_sha256_and_feedback_write",
+        "backend_full_sha256_after_windows_roundtrip",
+        "read_only_chkdsk_after_each_mount",
+        "original_source_unchanged"
+      ],
+      "suite": "large-file",
+      "sha256": "de0b77b0fa8a6692120e8cfefac14f713495e24ea00559ecf2441d83238df2a9",
+      "file_size": 4297064585,
+      "status": "pass"
+    }
+  ],
+  "started_at": "2026-11-15T07:35:47.6460193Z",
+  "status": "pass",
+  "windows_backend_sha256": "703c2cdd1da64ba273cfcb2467a65903761ffeeb849bb3504ba07b727d1e2572",
+  "windows_version": "Microsoft Windows NT 10.0.26200.0",
+  "linux_backend_sha256": "8e2781ef66508cedfcb76603143d8cd20426eda502d9ee8d5513d000d3e401cf",
+  "native_driver_requests_completed": 8,
+  "read_only_chkdsk_pass_count": 8,
+  "private_vhd_sparse_attributes_cleared": 8,
+  "all_remaining_test_vhds_dismounted": true,
+  "elevated_test_runner_exited": true,
+  "chkdsk_vss_snapshot_storage_warning_count": 8,
+  "request_results": [
+    {
+      "result": "request-1943da277635404d92784982de8cf0b8.json.result.json",
+      "checks": [
+        "private_vhd_sparse_attribute_cleared",
+        "windows_driver_write:system-data.bin",
+        "windows_driver_write:directory/inside.txt",
+        "native_chkdsk_read_only"
+      ],
+      "chkdsk_log_sha256": "4a55a9bdcc67f7428c4f3af2287d0ff3fb3b1cdf13bb2f3987d9ab180977309a"
+    },
+    {
+      "result": "request-1df67fc8a25040a18c2bc49f883376fe.json.result.json",
+      "checks": [
+        "private_vhd_sparse_attribute_cleared",
+        "windows_driver_read:system-data.bin",
+        "windows_driver_read:renamed-directory/inside.txt",
+        "windows_driver_write:driver-feedback.txt",
+        "native_chkdsk_read_only"
+      ],
+      "chkdsk_log_sha256": "800328afe55374d44a0f0ccb9e355110cd3c33bf1d1c84cf08a07285134d56d8"
+    },
+    {
+      "result": "request-5577813a8c4944a1b04296c34e63031b.json.result.json",
+      "checks": [
+        "private_vhd_sparse_attribute_cleared",
+        "windows_driver_read:system-data.bin",
+        "windows_driver_read:renamed-directory/inside.txt",
+        "windows_driver_write:driver-feedback.txt",
+        "native_chkdsk_read_only"
+      ],
+      "chkdsk_log_sha256": "c2cebf6e36b919b0a2c635f79f27bb5a8e8d3cef36b291f7187afc1c510c9855"
+    },
+    {
+      "result": "request-af82af96cc6a402cab2771e9c1d7fb14.json.result.json",
+      "checks": [
+        "private_vhd_sparse_attribute_cleared",
+        "windows_driver_write:driver-on-backend.txt",
+        "native_chkdsk_read_only"
+      ],
+      "chkdsk_log_sha256": "33fb33677081ff497a1b9551049efb19d2f11502634a9ba3627cb01e14f0b8cc"
+    },
+    {
+      "result": "request-b44e6920cbab4be299de8569df7566e6.json.result.json",
+      "checks": [
+        "private_vhd_sparse_attribute_cleared",
+        "windows_driver_read:moved.bin",
+        "windows_driver_write:large-feedback.txt",
+        "native_chkdsk_read_only"
+      ],
+      "chkdsk_log_sha256": "7ed6d970408e414097442af8e341dcc427a934c57abcfb1241c40d191e4d363e"
+    },
+    {
+      "result": "request-df0d4a46d9874f6d8dc4116565de48b5.json.result.json",
+      "checks": [
+        "private_vhd_sparse_attribute_cleared",
+        "windows_driver_write:system-data.bin",
+        "windows_driver_write:directory/inside.txt",
+        "native_chkdsk_read_only"
+      ],
+      "chkdsk_log_sha256": "bf41c49d870f62e5d856dda9ef206ca0f3e21f0c7561d0fb48dbf9689d4bb91b"
+    },
+    {
+      "result": "request-f004c40feb3b47f0b3208356cf72ba9f.json.result.json",
+      "checks": [
+        "private_vhd_sparse_attribute_cleared",
+        "windows_driver_write:driver-on-backend.txt",
+        "native_chkdsk_read_only"
+      ],
+      "chkdsk_log_sha256": "6331f28cec8c681b853f392d404f93c7e0c70237bc8661599ef6e8fddcaefa1e"
+    },
+    {
+      "result": "request-f20ab0568ddd4452a3a52a49a5bd9033.json.result.json",
+      "checks": [
+        "private_vhd_sparse_attribute_cleared",
+        "windows_driver_streamed_write:large.bin",
+        "native_chkdsk_read_only"
+      ],
+      "chkdsk_log_sha256": "2c1499af6853843be6fc6b9fd6539d8661b255ac3de0f955e94c7ad685e1871d"
+    }
+  ],
+  "validation_scripts_sha256": {
+    "scripts/windows_exfat_interop_validate.ps1": "b88e52fb41ff1020be78626834939b60f5c9ab09dac9488c029e6bdb6b8a3dfe",
+    "scripts/windows_native_fs_roundtrip.ps1": "353e5e10944796680b8d306aeaec492df966d1dad1984dfdfbc4952f42772ef5",
+    "scripts/windows_common.ps1": "94328cece1571425003844c1c9b6e3045897d7e4066e6c230118a15c26430cba"
+  }
+}

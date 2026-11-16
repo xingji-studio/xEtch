@@ -451,6 +451,259 @@
                      ));
                  }
                  for k in 0..count {
+--- a/src/fs/ext/jbd2.rs
++++ b/src/fs/ext/jbd2.rs
+@@ -1,18 +1,17 @@
+ //! JBD2 (ext3/4 journal) on-disk format and transaction commit/replay.
+ //!
+-//! genfs writes only the simplest flavour of JBD2 transactions:
++//! Transactions preserve the existing journal's feature flags:
+ //!
+-//! - Journal feature flags are all clear (no `INCOMPAT_64BIT`, no
+-//!   `INCOMPAT_CSUM_V2/V3`). Tags are the classic 8- (SAME_UUID) or
+-//!   24-byte (with UUID) `journal_block_tag_s` records, no per-tag
+-//!   checksum, no descriptor-block tail, no commit-block checksum.
++//! - Descriptor tags follow the classic, 64-bit, CSUM_V2 or CSUM_V3
++//!   layout. Checksummed journals include tag, descriptor, commit and
++//!   superblock CRC32C updates. Legacy checksum-v1 writes are rejected.
+ //! - All journaled blocks share the same UUID; the descriptor block
+ //!   leaves the per-tag UUID set on the first tag only and flips
+ //!   `JBD2_FLAG_SAME_UUID` on the rest. Since we always use the
+ //!   filesystem's own UUID (which is also written into the journal
+ //!   superblock), the kernel/e2fsck accept the transaction.
+-//! - The commit block is the 32-byte header form: nothing past
+-//!   `h_commit_nsec` is used.
++//! - Payloads beginning with the JBD2 magic are escaped in the journal
++//!   and identified by the tag's ESCAPE bit for kernel recovery.
+ //!
+ //! ## Why JBD2 fields are big-endian
+ //!
+@@ -117,6 +116,22 @@
+         }
+         let mut uuid = [0u8; 16];
+         uuid.copy_from_slice(&buf[JSB_OFF_UUID..JSB_OFF_UUID + 16]);
++        let feature_incompat = u32::from_be_bytes(buf[40..44].try_into().unwrap());
++        if has_checksums(feature_incompat) {
++            if buf.len() < 1024 || buf[80] != 4 {
++                return Err(crate::Error::InvalidImage(
++                    "ext: invalid checksummed journal superblock".into(),
++                ));
++            }
++            let expected = u32::from_be_bytes(buf[252..256].try_into().unwrap());
++            let mut bytes = buf[..1024].to_vec();
++            bytes[252..256].fill(0);
++            if super::csum::raw_update(!0, &bytes) != expected {
++                return Err(crate::Error::InvalidImage(
++                    "ext: journal superblock checksum mismatch".into(),
++                ));
++            }
++        }
+         Ok(Self {
+             blocksize: u32::from_be_bytes(
+                 buf[JSB_OFF_BLOCKSIZE..JSB_OFF_BLOCKSIZE + 4]
+@@ -166,11 +181,10 @@
+ /// and clears `SAME_UUID`. Continuation descriptors set `SAME_UUID`
+ /// on every tag, dropping the 16-byte overhead.
+ ///
+-/// `is_last_descriptor` is true when this is the final descriptor in
+-/// the transaction — its last tag gets `LAST_TAG` so the reader knows
+-/// to expect a commit block after this descriptor's data payloads.
+-/// Continuation descriptors don't set `LAST_TAG`; the reader probes
+-/// the next block to decide whether to keep walking or finalise.
++/// The last tag of every descriptor gets `LAST_TAG`; this flag ends
++/// the tag list, not the transaction. `is_last_descriptor` is retained
++/// for API compatibility. A following descriptor or commit block
++/// determines whether the transaction continues.
+ ///
+ /// Tag capacity is `(bs - 12 - 16) / 8` for the first descriptor and
+ /// `(bs - 12) / 8` for continuations; see [`descriptor_tag_capacity`].
+@@ -182,13 +196,60 @@
+     is_first_descriptor: bool,
+     is_last_descriptor: bool,
+ ) -> Vec<u8> {
++    encode_descriptor_features(
++        block_size,
++        sequence,
++        blocks,
++        uuid,
++        is_first_descriptor,
++        is_last_descriptor,
++        0,
++    )
++}
++
++fn has_checksums(features: u32) -> bool {
++    features & (JBD2_FEATURE_INCOMPAT_CSUM_V2 | JBD2_FEATURE_INCOMPAT_CSUM_V3) != 0
++}
++
++fn update_superblock_checksum(buf: &mut [u8]) {
++    let features = u32::from_be_bytes(buf[40..44].try_into().unwrap());
++    if has_checksums(features) && buf.len() >= 1024 {
++        buf[252..256].fill(0);
++        let checksum = super::csum::raw_update(!0, &buf[..1024]);
++        buf[252..256].copy_from_slice(&checksum.to_be_bytes());
++    }
++}
++
++fn journal_payload(bytes: &[u8]) -> std::borrow::Cow<'_, [u8]> {
++    if bytes.starts_with(&JBD2_MAGIC.to_be_bytes()) {
++        let mut escaped = bytes.to_vec();
++        escaped[..4].fill(0);
++        std::borrow::Cow::Owned(escaped)
++    } else {
++        std::borrow::Cow::Borrowed(bytes)
++    }
++}
++
++#[allow(clippy::too_many_arguments)]
++fn encode_descriptor_features(
++    block_size: u32,
++    sequence: u32,
++    blocks: &[JournalBlock],
++    uuid: &[u8; 16],
++    is_first_descriptor: bool,
++    _is_last_descriptor: bool,
++    features: u32,
++) -> Vec<u8> {
+     let mut out = vec![0u8; block_size as usize];
+     out[..12].copy_from_slice(&encode_header(JBD2_DESCRIPTOR_BLOCK, sequence));
+     let mut off = 12usize;
+     for (i, jb) in blocks.iter().enumerate() {
+         let is_very_first_tag = is_first_descriptor && i == 0;
+-        let is_very_last_tag = is_last_descriptor && i + 1 == blocks.len();
++        let is_very_last_tag = i + 1 == blocks.len();
+         let mut flags: u16 = 0;
++        if jb.bytes.starts_with(&JBD2_MAGIC.to_be_bytes()) {
++            flags |= JBD2_FLAG_ESCAPE;
++        }
+         if !is_very_first_tag {
+             flags |= JBD2_FLAG_SAME_UUID;
+         }
+@@ -197,15 +258,30 @@
+         }
+         // t_blocknr (low 32 bits)
+         out[off..off + 4].copy_from_slice(&jb.fs_block.to_be_bytes());
+-        // t_checksum (low 16, BE) — zero, no CSUM_V2
+-        out[off + 4..off + 6].copy_from_slice(&0u16.to_be_bytes());
+-        // t_flags (BE)
+-        out[off + 6..off + 8].copy_from_slice(&flags.to_be_bytes());
+-        off += 8;
++        let seed = super::csum::raw_update(!0, uuid);
++        let seed = super::csum::raw_update(seed, &sequence.to_be_bytes());
++        let checksum = if has_checksums(features) {
++            super::csum::raw_update(seed, &journal_payload(&jb.bytes))
++        } else {
++            0
++        };
++        if features & JBD2_FEATURE_INCOMPAT_CSUM_V3 != 0 {
++            out[off + 4..off + 8].copy_from_slice(&(flags as u32).to_be_bytes());
++            out[off + 12..off + 16].copy_from_slice(&checksum.to_be_bytes());
++        } else {
++            out[off + 4..off + 6].copy_from_slice(&(checksum as u16).to_be_bytes());
++            out[off + 6..off + 8].copy_from_slice(&flags.to_be_bytes());
++        }
++        off += journal_tag_bytes(features);
+         if is_very_first_tag {
+             out[off..off + 16].copy_from_slice(uuid);
+             off += 16;
+         }
++    }
++    if has_checksums(features) {
++        let checksum = super::csum::raw_update(super::csum::raw_update(!0, uuid), &out);
++        let end = out.len();
++        out[end - 4..].copy_from_slice(&checksum.to_be_bytes());
+     }
+     out
+ }
+@@ -214,9 +290,18 @@
+ /// first descriptor in a transaction loses 16 bytes to the UUID
+ /// payload after its first tag; continuation descriptors don't.
+ pub fn descriptor_tag_capacity(block_size: u32, is_first_descriptor: bool) -> usize {
++    descriptor_capacity_features(block_size, is_first_descriptor, 0)
++}
++
++pub(crate) fn descriptor_capacity_features(
++    block_size: u32,
++    is_first_descriptor: bool,
++    features: u32,
++) -> usize {
+     let header = 12usize;
+     let uuid_overhead = if is_first_descriptor { 16 } else { 0 };
+-    (block_size as usize - header - uuid_overhead) / 8
++    (descriptor_payload_len(block_size, features) - header - uuid_overhead)
++        / journal_tag_bytes(features)
+ }
+ 
+ /// Build the commit block bytes (`block_size` long). Without any
+@@ -243,6 +328,7 @@
+ /// Caller is responsible for writing the buffer back.
+ pub fn set_sequence(buf: &mut [u8], sequence: u32) {
+     buf[JSB_OFF_SEQUENCE..JSB_OFF_SEQUENCE + 4].copy_from_slice(&sequence.to_be_bytes());
++    update_superblock_checksum(buf);
+ }
+ 
+ /// Update the journal SB's `s_start` field (BE u32 at offset 28). A
+@@ -250,6 +336,7 @@
+ /// that block; zero is the clean-shutdown sentinel.
+ pub fn set_start(buf: &mut [u8], start: u32) {
+     buf[JSB_OFF_START..JSB_OFF_START + 4].copy_from_slice(&start.to_be_bytes());
++    update_superblock_checksum(buf);
+ }
+ 
+ /// Size of one descriptor tag (excluding a trailing UUID) for the journal's
+@@ -660,8 +747,13 @@
+     commit_nsec: u32,
+ ) -> Result<u32> {
+     let bs = ext.layout.block_size;
+-    let first_cap = descriptor_tag_capacity(bs, true);
+-    let next_cap = descriptor_tag_capacity(bs, false);
++    if u32::from_be_bytes(jsb_buf[36..40].try_into().unwrap()) != 0 {
++        return Err(crate::Error::Unsupported(
++            "ext: writing legacy checksum-v1 journals is not supported".into(),
++        ));
++    }
++    let first_cap = descriptor_capacity_features(bs, true, jsb.feature_incompat);
++    let next_cap = descriptor_capacity_features(bs, false, jsb.feature_incompat);
+ 
+     // Total journal blocks: one descriptor per chunk + every data
+     // block + one trailing commit. First chunk holds up to `first_cap`
+@@ -697,13 +789,21 @@
+         };
+         let is_last_desc = chunk_end == blocks.len();
+ 
+-        let desc = encode_descriptor_block(bs, tid, chunk, &jsb.uuid, is_first_desc, is_last_desc);
++        let desc = encode_descriptor_features(
++            bs,
++            tid,
++            chunk,
++            &jsb.uuid,
++            is_first_desc,
++            is_last_desc,
++            jsb.feature_incompat,
++        );
+         write_journal_block(ext, dev, journal_inode, idx, &desc)?;
+         idx = ring_next(idx, jsb);
+ 
+         for jb in chunk {
+             debug_assert_eq!(jb.bytes.len(), bs as usize, "journal payload wrong size");
+-            write_journal_block(ext, dev, journal_inode, idx, &jb.bytes)?;
++            write_journal_block(ext, dev, journal_inode, idx, &journal_payload(&jb.bytes))?;
+             idx = ring_next(idx, jsb);
+         }
+ 
+@@ -718,7 +818,11 @@
+     }
+ 
+     // Commit.
+-    let commit = encode_commit_block(bs, tid, commit_sec, commit_nsec);
++    let mut commit = encode_commit_block(bs, tid, commit_sec, commit_nsec);
++    if has_checksums(jsb.feature_incompat) {
++        let checksum = super::csum::raw_update(super::csum::raw_update(!0, &jsb.uuid), &commit);
++        commit[16..20].copy_from_slice(&checksum.to_be_bytes());
++    }
+     write_journal_block(ext, dev, journal_inode, idx, &commit)?;
+     let after = ring_next(idx, jsb);
+ 
 --- a/src/fs/ext/layout.rs
 +++ b/src/fs/ext/layout.rs
 @@ -427,7 +427,7 @@
@@ -474,7 +727,32 @@
          self.push_data_block(data[0], jsb);
  
          self.push_new_inode(ino, inode);
-@@ -4722,7 +4723,10 @@
+@@ -2579,6 +2580,13 @@
+         let mut jsb_buf = vec![0u8; bs as usize];
+         self.read_block(dev, jsb_phys, &mut jsb_buf)?;
+         let jsb = jbd2::JournalSuperblock::decode(&jsb_buf)?;
++        // Reject checksum-v1 before the oversized-transaction fallback too.
++        // It must not silently bypass the journal writer's feature check.
++        if u32::from_be_bytes(jsb_buf[36..40].try_into().unwrap()) != 0 {
++            return Err(crate::Error::Unsupported(
++                "ext: writing legacy checksum-v1 journals is not supported".into(),
++            ));
++        }
+         if jsb.blocksize != bs {
+             return Err(crate::Error::InvalidImage(format!(
+                 "ext: journal blocksize {} != FS blocksize {bs}",
+@@ -2611,8 +2619,8 @@
+         // mke2fs / genext2fs produce exactly this (empty journal) for a
+         // freshly-populated image.
+         let avail = jsb.maxlen.saturating_sub(jsb.first) as usize;
+-        let first_cap = jbd2::descriptor_tag_capacity(bs, true);
+-        let next_cap = jbd2::descriptor_tag_capacity(bs, false);
++        let first_cap = jbd2::descriptor_capacity_features(bs, true, jsb.feature_incompat);
++        let next_cap = jbd2::descriptor_capacity_features(bs, false, jsb.feature_incompat);
+         let n_descs = if images.len() <= first_cap {
+             1
+         } else {
+@@ -4722,7 +4730,10 @@
              cur = self
                  .lookup_dir_entry(dev, cur, comp.as_bytes())?
                  .ok_or_else(|| {
@@ -486,7 +764,7 @@
                  })?;
          }
          Ok(cur)
-@@ -4816,7 +4820,7 @@
+@@ -4816,7 +4827,7 @@
      /// xattrs (pointed at by `inode.file_acl`). Inline entries come
      /// first to match the kernel's ordering.
      ///
@@ -495,7 +773,7 @@
      pub fn read_xattrs(&self, dev: &mut dyn BlockDevice, ino: u32) -> Result<Vec<xattr::Xattr>> {
          let mut out = Vec::new();
          // Inline xattrs only exist when the on-disk inode is bigger than
-@@ -4829,6 +4833,15 @@
+@@ -4829,6 +4840,15 @@
              let bs = self.layout.block_size as usize;
              let mut block = vec![0u8; bs];
              dev.read_at(inode.file_acl as u64 * bs as u64, &mut block)?;

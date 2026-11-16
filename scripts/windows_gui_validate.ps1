@@ -11,6 +11,14 @@ param(
 )
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "windows_common.ps1")
+# ValidateSet accepts case-insensitive input; the GUI's filesystem IDs are
+# canonical strings and its integration assertions compare them exactly.
+$FileSystem = switch ($FileSystem.ToLowerInvariant()) {
+    "fat32" { "FAT32" }
+    "ntfs" { "NTFS" }
+    "exfat" { "exFAT" }
+    "ext4" { "ext4" }
+}
 $Binary = (Resolve-Path $Binary).Path
 $Backend = (Resolve-Path $Backend).Path
 if ($CreateImage) {

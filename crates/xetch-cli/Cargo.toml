@@ -5,6 +5,9 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 
+[features]
+validation-hooks = ["xetch-core/validation-hooks"]
+
 [[bin]]
 name = "xetch"
 path = "src/main.rs"

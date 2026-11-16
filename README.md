@@ -32,7 +32,7 @@ python3 scripts/build_ntfs_worker.py --target windows
 
 直接 `cargo build --release` 仍可用，产物是 `target/release/xetch[.exe]`。可通过 `XETCH_QEMU_IMG` 和 `XETCH_QEMU_STORAGE_DAEMON` 指定工具完整路径；否则优先查找后端旁的 `qemu/`，再查找 PATH。
 
-已实际验证 Linux / WSL2 + QEMU 8.2.2，以及 Windows 11 x64 + 项目内 QEMU 11.1.0 UTF-8 兼容配置，两个系统的目录打包与移动后运行也已验证。macOS 实机运行、干净系统验收、签名安装包和真实断电恢复仍待完成。CI 配置包含原生 Windows 集成验收和跨平台文件系统互操作检查；本次没有触发远端 CI。
+已实际验证 Linux / WSL2 + QEMU 6.2、8.2.2，以及 Windows 11 x64 + 项目内 QEMU 11.1.0 UTF-8 兼容配置，两个系统的目录打包与移动后运行也已验证。macOS 实机运行、干净系统验收、签名安装包和真实断电恢复仍待完成。CI 配置包含原生 Windows 集成验收和跨平台文件系统互操作检查；本次没有触发远端 CI。
 
 ### Windows 依赖
 
@@ -106,6 +106,10 @@ xetch --experimental-filesystems create --output linux-new.vmdk --size 256MiB --
 ```
 
 exFAT、ext4 均支持新建独立卷、MBR 或 GPT 的 IMG/VMDK。exFAT 文件与带内容目录均可改名和移动，名称冲突按卷的 Unicode 映射判断。ext4 支持区分大小写的文件/目录移动，保留已有权限、硬链接、ACL 和扩展属性，并支持新建文件/目录的默认 ACL、setgid 组继承。NTFS 格式化尚未开放。脏 exFAT 拒绝写入；带错误或需日志回放的 ext4 拒绝读取和写入，不自动回放日志。详细支持边界及 Linux/Windows 验证见 [exFAT/ext4 说明](docs/EXFAT-EXT4.md)。
+
+新增实际 Linux 内核往返、4 GiB + 2 MiB + 137 字节单文件全量哈希及故障恢复矩阵，分别使用 Linux 与 Windows 原生后端。修复了 ext4 JBD2 校验和及异常退出后的辅助进程/未提交层回收问题；Windows 自带 exFAT 驱动的真实格式化/读写、大文件完整哈希往返和 8 次只读 chkdsk 也已通过。复现与结果见 [深度验收说明](docs/DEEP-FS-VALIDATION.md)。
+
+提交边界故障注入、持续分配/删除的随机碎片压力，以及 ext4 CSUM_V2、2 KiB 块真实内核回放与双向读写见 [进阶验收](docs/ADVANCED-FS-VALIDATION.md)。中断后重试可回收同一输出的暂存材料；原子发布之后的同步或清理失败返回 `commit_uncertain`，应先检查工作区或输出结果再继续。
 
 NTFS 使用独立的 NTFS-3G 工作进程进行普通文件读写，无需实验开关。支持文件创建/替换、文件夹创建、文件与空目录删除、文件改名及移动；覆盖保留原 MFT、安全描述符、ADS 和 EA。只接受正常关闭的离线卷；拒绝脏卷、休眠卷、系统元数据路径、目录改名及压缩/EFS/reparse 文件修改。Linux 和 Windows 原生读写验证、故障回退及独立工具检查见 [NTFS 报告](docs/NTFS.md)。
 

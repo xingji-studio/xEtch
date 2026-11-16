@@ -550,7 +550,9 @@ fn check_journal(ext: &fstool::fs::ext::Ext, dev: &mut dyn BlockDevice) -> Resul
             "external ext4 journals are not supported".into(),
         ));
     }
-    let mut bytes = [0; 64];
+    // JBD2's checksum covers its full 1024-byte superblock, including
+    // fields beyond the 64-byte header used by the original guard.
+    let mut bytes = [0; 1024];
     ext.open_file_reader(dev, inode)
         .map_err(map_error)?
         .read_exact(&mut bytes)?;
@@ -572,6 +574,46 @@ fn check_journal(ext: &fstool::fs::ext::Ext, dev: &mut dyn BlockDevice) -> Resul
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn journal_last_tag_ends_each_descriptor_in_a_transaction() {
+        use fstool::fs::ext::jbd2::{encode_descriptor_block, JournalBlock, JBD2_FLAG_LAST_TAG};
+        // Kernel recovery stops each descriptor's tag list at LAST_TAG,
+        // including a descriptor followed by another descriptor.
+        let block = JournalBlock {
+            fs_block: 42,
+            bytes: vec![0; 1024],
+        };
+        let descriptor = encode_descriptor_block(1024, 7, &[block], &[0x42; 16], true, false);
+        let flags = u16::from_be_bytes(descriptor[18..20].try_into().unwrap());
+        assert_ne!(flags & JBD2_FLAG_LAST_TAG, 0);
+    }
+    #[test]
+    fn kernel_journal_checksum_is_checked_and_preserved_on_updates() {
+        // Clean superblock produced by Linux JBD2 (64-bit + checksum v3).
+        // Validate with the simple bitwise CRC, independently of the writer's
+        // table-based CRC implementation, and cover the former 64-byte guard.
+        let mut bytes = *include_bytes!("../tests/fixtures/jbd2-csum-v3.bin");
+        let decode = fstool::fs::ext::jbd2::JournalSuperblock::decode;
+        assert_eq!(decode(&bytes).unwrap().feature_incompat, 0x12);
+        assert!(decode(&bytes[..64]).is_err());
+        fstool::fs::ext::jbd2::set_sequence(&mut bytes, 123);
+        fstool::fs::ext::jbd2::set_start(&mut bytes, 1);
+        let stored = u32::from_be_bytes(bytes[252..256].try_into().unwrap());
+        let mut copy = bytes;
+        copy[252..256].fill(0);
+        let mut crc = !0u32;
+        for byte in copy {
+            crc ^= u32::from(byte);
+            for _ in 0..8 {
+                crc = (crc >> 1) ^ if crc & 1 != 0 { 0x82f6_3b78 } else { 0 };
+            }
+        }
+        assert_eq!(stored, crc);
+        let journal = decode(&bytes).unwrap();
+        assert_eq!((journal.sequence, journal.start), (123, 1));
+        bytes[20] ^= 1;
+        assert!(decode(&bytes).is_err());
+    }
     #[test]
     fn ext4_format_last_group_does_not_overflow_block_limit() {
         let blocks = u32::MAX - 7;

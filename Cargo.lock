@@ -588,12 +588,14 @@ dependencies = [
  "crc32fast",
  "fatfs",
  "fstool",
+ "libc",
  "serde",
  "serde_json",
  "sha2",
  "tempfile",
  "thiserror",
  "uuid",
+ "windows-sys",
 ]
 
 [[package]]

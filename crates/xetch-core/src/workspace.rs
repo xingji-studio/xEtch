@@ -81,14 +81,43 @@ pub fn sync_dir(path: &Path) -> Result<()> {
     let _ = path;
     Ok(())
 }
-fn write_manifest(root: &Path, manifest: &Manifest) -> Result<()> {
+fn write_json(root: &Path, name: &str, value: &impl Serialize) -> Result<()> {
     let mut temp = tempfile::NamedTempFile::new_in(root)?;
+    serde_json::to_writer_pretty(temp.as_file_mut(), value)?;
+    temp.write_all(b"\n")?;
+    temp.as_file().sync_all()?;
+    temp.persist(root.join(name)).map_err(|e| e.error)?;
+    sync_dir(root)
+}
+fn write_manifest(root: &Path, manifest: &Manifest) -> Result<()> {
+    write_json(root, "workspace.json", manifest)
+}
+
+fn commit_manifest(
+    root: &Path,
+    manifest: &Manifest,
+    mut temp: tempfile::NamedTempFile,
+) -> Result<()> {
     serde_json::to_writer_pretty(temp.as_file_mut(), manifest)?;
     temp.write_all(b"\n")?;
     temp.as_file().sync_all()?;
+    crate::validation::checkpoint("manifest.temporary_synced", temp.path())?;
     temp.persist(root.join("workspace.json"))
         .map_err(|e| e.error)?;
-    sync_dir(root)
+    (|| -> Result<()> {
+        crate::validation::checkpoint("manifest.replaced", root)?;
+        sync_dir(root)?;
+        crate::validation::checkpoint("manifest.directory_synced", root)
+    })()
+    .map_err(|e| Error::CommitUncertain(e.to_string()))
+}
+
+#[derive(Serialize, Deserialize)]
+struct PendingEdit {
+    schema_version: u32,
+    layer: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    manifest_temporary: Option<String>,
 }
 
 impl Workspace {
@@ -172,7 +201,7 @@ impl Workspace {
         {
             return Err(Error::Invalid("invalid workspace head filename".into()));
         }
-        let workspace = Self {
+        let mut workspace = Self {
             root,
             manifest,
             _lock: lock,
@@ -184,6 +213,7 @@ impl Workspace {
                 "workspace overlay format or size mismatch".into(),
             ));
         }
+        workspace.recover_pending()?;
         Ok(workspace)
     }
     pub fn head(&self) -> PathBuf {
@@ -204,6 +234,85 @@ impl Workspace {
         Disk::open(&self.head(), "qcow2", false)
     }
 
+    /// A durable record identifies the one layer owned by an interrupted
+    /// operation. Never infer ownership from a filename or delete unknown files.
+    fn recover_pending(&mut self) -> Result<()> {
+        let marker = self.root.join(".pending-edit.json");
+        let file = match File::open(&marker) {
+            Ok(file) => file,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+            Err(error) => return Err(error.into()),
+        };
+        if file.metadata()?.len() > 4096 {
+            return Err(Error::Invalid("pending edit record exceeds 4 KiB".into()));
+        }
+        let pending: PendingEdit = serde_json::from_reader(file)?;
+        let name = Path::new(&pending.layer);
+        if pending.schema_version != 1
+            || name.components().count() != 1
+            || !pending.layer.starts_with("edit-")
+            || name.extension().is_none_or(|s| s != "qcow2")
+        {
+            return Err(Error::Invalid("invalid pending edit record".into()));
+        }
+        // Read the on-disk commit point, including a rename that succeeded
+        // before a directory-sync error was returned to the caller.
+        let actual: Manifest =
+            serde_json::from_reader(File::open(self.root.join("workspace.json"))?)?;
+        let path = self.root.join(&pending.layer);
+        if path.exists() && pending.layer != actual.head {
+            if fs::symlink_metadata(&path)?.file_type().is_symlink() {
+                return Err(Error::Invalid("pending layer must not be a symlink".into()));
+            }
+            let data = tools::command(&[
+                "info".into(),
+                "--backing-chain".into(),
+                "--output=json".into(),
+                self.root.join(&actual.head).into_os_string(),
+            ])?;
+            let chain: Vec<serde_json::Value> = serde_json::from_slice(&data)?;
+            let canonical = fs::canonicalize(&path)?;
+            let mut referenced = false;
+            for image in chain {
+                if let Some(filename) = image["filename"].as_str() {
+                    if fs::canonicalize(filename)? == canonical {
+                        referenced = true;
+                    }
+                }
+            }
+            if !referenced {
+                for attempt in 0..20 {
+                    match fs::remove_file(&path) {
+                        Ok(()) => break,
+                        Err(error) if attempt == 19 => return Err(error.into()),
+                        Err(_) => std::thread::sleep(std::time::Duration::from_millis(25)),
+                    }
+                }
+            }
+        }
+        if let Some(temporary) = &pending.manifest_temporary {
+            let name = Path::new(temporary);
+            if name.components().count() != 1
+                || !temporary.starts_with(".manifest-")
+                || name.extension().is_none_or(|e| e != "json")
+            {
+                return Err(Error::Invalid("invalid pending manifest filename".into()));
+            }
+            let path = self.root.join(name);
+            if let Ok(metadata) = fs::symlink_metadata(&path) {
+                if !metadata.file_type().is_file() {
+                    return Err(Error::Invalid(
+                        "pending manifest must be a regular file".into(),
+                    ));
+                }
+                fs::remove_file(path)?;
+            }
+        }
+        self.manifest = actual;
+        fs::remove_file(marker)?;
+        sync_dir(&self.root)
+    }
+
     /// Each operation writes a fresh child overlay. The manifest head is the
     /// commit point; failed operations and interrupted writes stay unreachable.
     pub fn mutate<F>(&mut self, change: Change, operation: F) -> Result<()>
@@ -220,42 +329,75 @@ impl Workspace {
             .suffix(".qcow2")
             .tempfile_in(&self.root)?;
         let path = temp.path().to_path_buf();
-        tools::command(&[
-            "create".into(),
-            "-f".into(),
-            "qcow2".into(),
-            "-F".into(),
-            "qcow2".into(),
-            "-b".into(),
-            self.head().into_os_string(),
-            path.as_os_str().into(),
-        ])?;
-        {
-            let mut disk = Disk::open(&path, "qcow2", true)?;
-            operation(&mut disk)?;
-            disk.flush()?;
+        let manifest_temp = tempfile::Builder::new()
+            .prefix(".manifest-")
+            .suffix(".json")
+            .tempfile_in(&self.root)?;
+        write_json(
+            &self.root,
+            ".pending-edit.json",
+            &PendingEdit {
+                schema_version: 1,
+                layer: path.file_name().unwrap().to_string_lossy().into_owned(),
+                manifest_temporary: Some(
+                    manifest_temp
+                        .path()
+                        .file_name()
+                        .unwrap()
+                        .to_string_lossy()
+                        .into_owned(),
+                ),
+            },
+        )?;
+        let result = (|| {
+            crate::validation::checkpoint("edit.pending_durable", &self.root)?;
+            tools::command(&[
+                "create".into(),
+                "-f".into(),
+                "qcow2".into(),
+                "-F".into(),
+                "qcow2".into(),
+                "-b".into(),
+                self.head().into_os_string(),
+                path.as_os_str().into(),
+            ])?;
+            {
+                let mut disk = Disk::open(&path, "qcow2", true)?;
+                operation(&mut disk)?;
+                disk.flush()?;
+            }
+            OpenOptions::new().write(true).open(&path)?.sync_all()?;
+            crate::validation::checkpoint("edit.layer_synced", &path)?;
+            tools::command(&[
+                "check".into(),
+                "-f".into(),
+                "qcow2".into(),
+                path.as_os_str().into(),
+            ])?;
+            self.verify_source()?;
+            let previous = self.manifest.head.clone();
+            self.manifest.head = path.file_name().unwrap().to_string_lossy().into_owned();
+            self.manifest.changes.push(change);
+            // Keep the new image before committing its filename to the manifest.
+            let (_, kept) = temp.keep().map_err(|e| e.error)?;
+            sync_dir(&self.root)?;
+            crate::validation::checkpoint("edit.layer_kept", &path)?;
+            if let Err(e) = commit_manifest(&self.root, &self.manifest, manifest_temp) {
+                self.manifest.head = previous;
+                self.manifest.changes.pop();
+                // A directory fsync can fail after rename; retain the overlay in
+                // case the new manifest is already visible on disk.
+                return Err(e);
+            }
+            let _ = kept;
+            Ok(())
+        })();
+        let committed = result.is_ok();
+        let cleanup = self.recover_pending();
+        match (result, cleanup) {
+            (Err(error), _) => Err(error),
+            (Ok(()), Err(error)) if committed => Err(Error::CommitUncertain(error.to_string())),
+            (Ok(()), cleanup) => cleanup,
         }
-        OpenOptions::new().write(true).open(&path)?.sync_all()?;
-        tools::command(&[
-            "check".into(),
-            "-f".into(),
-            "qcow2".into(),
-            path.as_os_str().into(),
-        ])?;
-        self.verify_source()?;
-        let previous = self.manifest.head.clone();
-        self.manifest.head = path.file_name().unwrap().to_string_lossy().into_owned();
-        self.manifest.changes.push(change);
-        // Keep the new image before committing its filename to the manifest.
-        let (_, kept) = temp.keep().map_err(|e| e.error)?;
-        if let Err(e) = write_manifest(&self.root, &self.manifest) {
-            self.manifest.head = previous;
-            self.manifest.changes.pop();
-            // A directory fsync can fail after rename; retain the overlay in
-            // case the new manifest is already visible on disk.
-            return Err(e);
-        }
-        let _ = kept;
-        Ok(())
     }
 }

@@ -4,11 +4,16 @@ $utf8 = [System.Text.UTF8Encoding]::new($false)
 function Quote-Argument([string]$Value) {
     return '"' + [regex]::Replace([regex]::Replace($Value, '(\\*)"', '$1$1\"'), '(\\+)$', '$1$1') + '"'
 }
-function Invoke-Tool([string]$Program, [string[]]$ToolArguments, [string]$StdinText = "", [switch]$ExpectFailure, [string]$WorkingDirectory = "", [switch]$IncludeStandardError) {
+function Invoke-Tool([string]$Program, [string[]]$ToolArguments, [string]$StdinText = "", [switch]$ExpectFailure, [string]$WorkingDirectory = "", [switch]$IncludeStandardError, [ValidateRange(1, 3600)][int]$TimeoutSeconds = 180, [switch]$MinimalQuoting) {
     $start = [System.Diagnostics.ProcessStartInfo]::new()
     $start.FileName = $Program
     if ($WorkingDirectory) { $start.WorkingDirectory = $WorkingDirectory }
-    $start.Arguments = ($ToolArguments | ForEach-Object { Quote-Argument $_ }) -join ' '
+    # wsl.exe parses its leading switches itself and treats a quoted "-d"
+    # as a Linux command. Keep simple arguments unquoted for that caller.
+    $start.Arguments = ($ToolArguments | ForEach-Object {
+        if ($MinimalQuoting -and $_ -ne "" -and $_ -notmatch '[\s"]') { $_ }
+        else { Quote-Argument $_ }
+    }) -join ' '
     $start.UseShellExecute = $false
     $start.CreateNoWindow = $true
     $start.RedirectStandardOutput = $true
@@ -25,7 +30,7 @@ function Invoke-Tool([string]$Program, [string[]]$ToolArguments, [string]$StdinT
         $process.StandardInput.BaseStream.Flush()
     }
     $process.StandardInput.Close()
-    if (-not $process.WaitForExit(180000)) {
+    if (-not $process.WaitForExit($TimeoutSeconds * 1000)) {
         $process.Kill()
         throw "Timed out: $Program $($start.Arguments)"
     }

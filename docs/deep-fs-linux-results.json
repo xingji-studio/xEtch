@@ -1,0 +1,116 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "backend": "Linux x64",
+  "backend_sha256": "8e2781ef66508cedfcb76603143d8cd20426eda502d9ee8d5513d000d3e401cf",
+  "started_at": "2026-11-15T05:37:39.337365+00:00",
+  "validation_host": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.35",
+  "cases": [
+    {
+      "filesystem": "exfat",
+      "suite": "linux-kernel-roundtrip",
+      "status": "pass",
+      "checks": [
+        "system_format_and_kernel_write",
+        "backend_reads_system_file",
+        "backend_replaces_file_and_moves_directory",
+        "kernel_reads_export_and_writes_again",
+        "backend_reads_returned_file",
+        "kernel_mounts_backend_formatted_image",
+        "independent_fsck_after_each_phase",
+        "source_hash_unchanged"
+      ],
+      "driver": "Linux 6.18.33.2-microsoft-standard-WSL2 exfat"
+    },
+    {
+      "filesystem": "exfat",
+      "suite": "large-file",
+      "status": "pass",
+      "file_size": 4297064585,
+      "sha256": "de0b77b0fa8a6692120e8cfefac14f713495e24ea00559ecf2441d83238df2a9",
+      "driver": "Linux 6.18.33.2-microsoft-standard-WSL2 exfat",
+      "checks": [
+        "full_nonzero_payload_above_4gib",
+        "create_and_list_exact_u64_size",
+        "vmdk_full_sha256_readback",
+        "large_to_small_truncation",
+        "small_to_large_existing_inode_overwrite",
+        "rename_large_file",
+        "kernel_full_sha256_read_and_write",
+        "backend_full_sha256_after_kernel_roundtrip",
+        "independent_fsck",
+        "source_hash_unchanged"
+      ]
+    },
+    {
+      "filesystem": "exfat",
+      "suite": "fault-recovery",
+      "status": "pass",
+      "checks": [
+        "eio: original/checkpoint/data preserved, helpers stopped, abandoned edit reclaimed, independent fsck",
+        "enospc: original/checkpoint/data preserved, helpers stopped, abandoned edit reclaimed, independent fsck",
+        "flush: original/checkpoint/data preserved, helpers stopped, abandoned edit reclaimed, independent fsck",
+        "qsd-kill: original/checkpoint/data preserved, helpers stopped, abandoned edit reclaimed, independent fsck",
+        "backend-kill: original/checkpoint/data preserved, helpers stopped, abandoned edit reclaimed, independent fsck",
+        "committed_layer_survives_stale_pending_marker",
+        "new_edit_and_export_succeed_after_all_recoveries"
+      ]
+    },
+    {
+      "filesystem": "ext4",
+      "suite": "linux-kernel-roundtrip",
+      "status": "pass",
+      "checks": [
+        "system_format_and_kernel_write",
+        "backend_reads_system_file",
+        "backend_replaces_file_and_moves_directory",
+        "kernel_reads_export_and_writes_again",
+        "backend_reads_returned_file",
+        "kernel_mounts_backend_formatted_image",
+        "independent_fsck_after_each_phase",
+        "source_hash_unchanged",
+        "kernel_replays_actual_backend_journal_after_directory_rollback"
+      ],
+      "driver": "Linux 6.18.33.2-microsoft-standard-WSL2 ext4"
+    },
+    {
+      "filesystem": "ext4",
+      "suite": "large-file",
+      "status": "pass",
+      "file_size": 4297064585,
+      "sha256": "de0b77b0fa8a6692120e8cfefac14f713495e24ea00559ecf2441d83238df2a9",
+      "driver": "Linux 6.18.33.2-microsoft-standard-WSL2 ext4",
+      "checks": [
+        "full_nonzero_payload_above_4gib",
+        "create_and_list_exact_u64_size",
+        "vmdk_full_sha256_readback",
+        "large_to_small_truncation",
+        "small_to_large_existing_inode_overwrite",
+        "rename_large_file",
+        "kernel_full_sha256_read_and_write",
+        "backend_full_sha256_after_kernel_roundtrip",
+        "independent_fsck",
+        "source_hash_unchanged"
+      ]
+    },
+    {
+      "filesystem": "ext4",
+      "suite": "fault-recovery",
+      "status": "pass",
+      "checks": [
+        "eio: original/checkpoint/data preserved, helpers stopped, abandoned edit reclaimed, independent fsck",
+        "enospc: original/checkpoint/data preserved, helpers stopped, abandoned edit reclaimed, independent fsck",
+        "flush: original/checkpoint/data preserved, helpers stopped, abandoned edit reclaimed, independent fsck",
+        "qsd-kill: original/checkpoint/data preserved, helpers stopped, abandoned edit reclaimed, independent fsck",
+        "backend-kill: original/checkpoint/data preserved, helpers stopped, abandoned edit reclaimed, independent fsck",
+        "committed_layer_survives_stale_pending_marker",
+        "new_edit_and_export_succeed_after_all_recoveries"
+      ]
+    }
+  ],
+  "limits": [
+    "Fault injection does not simulate physical power loss."
+  ],
+  "fault_proxy_sha256": "abcb25819775c2f1d95a8ae877b21fc1f57bd9ffed308c2912143b7f3353c90f",
+  "finished_at": "2026-11-15T06:17:45.915925+00:00"
+}

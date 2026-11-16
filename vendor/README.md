@@ -40,6 +40,18 @@ The format layout planner also avoids intermediate u32 overflow when computing
 the final group's end near the 2^32-block limit (covered by an arithmetic-only
 boundary test, not a full-capacity image claim).
 
+The JBD2 writer preserves existing classic/64-bit/checksum-v2/v3 tag layouts,
+escapes magic-prefixed payloads, ends each descriptor with LAST_TAG, and emits
+the required tag, descriptor, commit and superblock CRC32C values. Superblock
+decode checks all 1024 bytes when checksums are enabled; sequence/start changes
+refresh its CRC. Legacy checksum-v1 writes are explicitly rejected, including
+the oversized-transaction fallback. Linux kernel roundtrips and actual kernel
+replay of the backend's saved journal cover checksum-v2/v3, including 2 KiB
+blocks and 32/64-bit v2 tags. Current kernels replay the prepared v2 fixtures
+and upgrade subsequent journal writes to v3; older-kernel-generated,
+continuously-v2 samples remain untested. See the
+[advanced validation matrix](../docs/ADVANCED-FS-VALIDATION.md).
+
 See [the exFAT/ext4 notes](../docs/EXFAT-EXT4.md) for tested boundaries and
 interoperability results.
 
