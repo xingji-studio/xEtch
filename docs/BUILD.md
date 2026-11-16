@@ -53,6 +53,8 @@ $env:XETCH_COMPONENTS = 'all'
 | `XETCH_WINDOWS_CARGO_HOME` | WSL 调用 Windows Cargo 时指定原生 Cargo 缓存，避免混用 Linux 缓存 |
 | `XETCH_PYTHON` | Windows 入口指定 Python 完整路径；默认尝试 `py -3`、`python` |
 | `XETCH_GUI` | 后端无参数启动时指定 GUI 可执行文件；默认查找应用目录中的前端 |
+| `XETCH_EXT4_ENGINE` | 运行时选择 ext4 引擎：默认 `fstool`；可选 P0 为 `lwext4` |
+| `XETCH_EXT4_WORKER` | 运行时指定可选 ext4 worker 路径；默认查找后端旁或 PATH |
 
 `--platform`、`--arch`、`--components`、`--profile`、`--ntfs` 与 `--offline` 可覆盖对应环境变量；`./xetch --help` 查看参数。`package --output <目录>` 指定包目录；`package --no-build` 只打包选择完全一致的已有成功构建。
 
@@ -64,6 +66,7 @@ $env:XETCH_COMPONENTS = 'all'
 - Windows GUI：.NET 8 SDK（或兼容的更新 SDK）、Visual Studio / Build Tools MSBuild、Windows SDK；首次构建恢复锁定的 NuGet 包。统一入口发布时随附 .NET、Windows App SDK 与可用的 VC 运行库。
 - QEMU：编译本身不需要，打包需要 `qemu-img` 和 `qemu-storage-daemon`。Linux 可安装 `qemu-utils qemu-system-common`，macOS 可安装 QEMU。Windows 在线打包会调用 `windows_prepare_qemu.ps1` 准备固定版本，需要 7-Zip 与 SDK 的 `mt.exe`；可通过 `XETCH_7ZIP` 指定 7-Zip，或设置 `XETCH_QEMU_DIR` 使用已准备好的兼容目录。
 - 可选 NTFS 写入工作进程：POSIX C 编译器、make、pkg-config；从 Linux/WSL 构建 Windows 版本还需 MinGW-w64。原生 Windows 可复用已经匹配当前源码的工作进程；首次构建可先在 WSL 执行 `python3 scripts/build_ntfs_worker.py --target windows`。工作进程二进制、配置、许可证和对应源码会一起收集，复用时校验源码及 SHA-256。详见 [NTFS 说明](NTFS.md)。
+- 可选 lwext4 P0：用 `python3 scripts/build_ext4_worker.py` 独立构建，Windows 目标加 `--target windows` 并安装 MinGW-w64。当前统一构建/打包入口尚不收集此 P0 组件；需将 `xetch-ext4-worker[.exe]`、`ext4-worker-profile.json`、`ext4-worker-licenses/` 一起放到后端旁，再设置 `XETCH_EXT4_ENGINE=lwext4`。普通构建不依赖此组件，使用范围和验证见 [lwext4 P0](LWEXT4-P0.md)。
 
 项目源码中的 `./xetch` 是构建入口，打包目录中的 `./xetch` / `xetch.exe` 是实际 CLI 和后端。
 

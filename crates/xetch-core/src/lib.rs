@@ -1,6 +1,7 @@
 //! Shared disk-image application core. No GUI dependencies.
 mod app;
 mod error;
+mod ext4_worker;
 mod ext_acl;
 mod extended;
 mod files;

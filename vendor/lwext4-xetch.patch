@@ -1,0 +1,415 @@
+--- a/src/ext4.c
++++ b/src/ext4.c
+@@ -824,11 +824,13 @@
+ 	struct ext4_inode_ref inode_ref;
+ 	uint64_t inode_size;
+ 	bool has_trans = mp->fs.jbd_journal && mp->fs.curr_trans;
++	bool extent_inode;
+ 	r = ext4_fs_get_inode_ref(fs, index, &inode_ref);
+ 	if (r != EOK)
+ 		return r;
+ 
+ 	inode_size = ext4_inode_get_size(&fs->sb, inode_ref.inode);
++	extent_inode = ext4_inode_has_flag(inode_ref.inode, EXT4_INODE_FLAG_EXTENTS);
+ 	ext4_fs_put_inode_ref(&inode_ref);
+ 	if (has_trans)
+ 		ext4_trans_stop(mp);
+@@ -856,7 +858,8 @@
+ 			ext4_trans_stop(mp);
+ 	}
+ 
+-	if (inode_size > new_size) {
++	/* xEtch: a zero-size inode may still own preallocated extents. */
++	if (inode_size > new_size || (new_size == 0 && extent_inode)) {
+ 
+ 		inode_size = new_size;
+ 
+@@ -1669,163 +1672,41 @@
+ 	return r;
+ }
+ 
++/* xEtch: sparse holes and unwritten extents are zero-filled, never block zero. */
+ int ext4_fread(ext4_file *file, void *buf, size_t size, size_t *rcnt)
+ {
+-	uint32_t unalg;
+-	uint32_t iblock_idx;
+-	uint32_t iblock_last;
+-	uint32_t block_size;
+-
+-	ext4_fsblk_t fblock;
+-	ext4_fsblk_t fblock_start;
+-	uint32_t fblock_count;
+-
+-	uint8_t *u8_buf = buf;
+-	int r;
+-	struct ext4_inode_ref ref;
+-
+-	ext4_assert(file && file->mp);
+-
+-	if (file->flags & O_WRONLY)
+-		return EPERM;
+-
+-	if (!size)
+-		return EOK;
+-
+-	EXT4_MP_LOCK(file->mp);
+-
+-	struct ext4_fs *const fs = &file->mp->fs;
+-	struct ext4_sblock *const sb = &file->mp->fs.sb;
+-
+-	if (rcnt)
+-		*rcnt = 0;
+-
+-	r = ext4_fs_get_inode_ref(fs, file->inode, &ref);
+-	if (r != EOK) {
+-		EXT4_MP_UNLOCK(file->mp);
+-		return r;
+-	}
+-
+-	/*Sync file size*/
+-	file->fsize = ext4_inode_get_size(sb, ref.inode);
+-
+-	block_size = ext4_sb_get_block_size(sb);
+-	size = ((uint64_t)size > (file->fsize - file->fpos))
+-		? ((size_t)(file->fsize - file->fpos)) : size;
+-
+-	iblock_idx = (uint32_t)((file->fpos) / block_size);
+-	iblock_last = (uint32_t)((file->fpos + size) / block_size);
+-	unalg = (file->fpos) % block_size;
+-
+-	/*If the size of symlink is smaller than 60 bytes*/
+-	bool softlink;
+-	softlink = ext4_inode_is_type(sb, ref.inode, EXT4_INODE_MODE_SOFTLINK);
+-	if (softlink && file->fsize < sizeof(ref.inode->blocks)
+-		     && !ext4_inode_get_blocks_count(sb, ref.inode)) {
+-
+-		char *content = (char *)ref.inode->blocks;
+-		if (file->fpos < file->fsize) {
+-			size_t len = size;
+-			if (unalg + size > (uint32_t)file->fsize)
+-				len = (uint32_t)file->fsize - unalg;
+-			memcpy(buf, content + unalg, len);
+-			if (rcnt)
+-				*rcnt = len;
+-
+-		}
+-
+-		r = EOK;
+-		goto Finish;
+-	}
+-
+-	if (unalg) {
+-		size_t len =  size;
+-		if (size > (block_size - unalg))
+-			len = block_size - unalg;
+-
+-		r = ext4_fs_get_inode_dblk_idx(&ref, iblock_idx, &fblock, true);
+-		if (r != EOK)
+-			goto Finish;
+-
+-		/* Do we get an unwritten range? */
+-		if (fblock != 0) {
+-			uint64_t off = fblock * block_size + unalg;
+-			r = ext4_block_readbytes(file->mp->fs.bdev, off, u8_buf, len);
+-			if (r != EOK)
+-				goto Finish;
+-
+-		} else {
+-			/* Yes, we do. */
+-			memset(u8_buf, 0, len);
+-		}
+-
+-		u8_buf += len;
+-		size -= len;
+-		file->fpos += len;
+-
+-		if (rcnt)
+-			*rcnt += len;
+-
+-		iblock_idx++;
+-	}
+-
+-	fblock_start = 0;
+-	fblock_count = 0;
+-	while (size >= block_size) {
+-		while (iblock_idx < iblock_last) {
+-			r = ext4_fs_get_inode_dblk_idx(&ref, iblock_idx,
+-						       &fblock, true);
+-			if (r != EOK)
+-				goto Finish;
+-
+-			iblock_idx++;
+-
+-			if (!fblock_start)
+-				fblock_start = fblock;
+-
+-			if ((fblock_start + fblock_count) != fblock)
+-				break;
+-
+-			fblock_count++;
+-		}
+-
+-		r = ext4_blocks_get_direct(file->mp->fs.bdev, u8_buf, fblock_start,
+-					   fblock_count);
+-		if (r != EOK)
+-			goto Finish;
+-
+-		size -= block_size * fblock_count;
+-		u8_buf += block_size * fblock_count;
+-		file->fpos += block_size * fblock_count;
+-
+-		if (rcnt)
+-			*rcnt += block_size * fblock_count;
+-
+-		fblock_start = fblock;
+-		fblock_count = 1;
+-	}
+-
+-	if (size) {
+-		uint64_t off;
+-		r = ext4_fs_get_inode_dblk_idx(&ref, iblock_idx, &fblock, true);
+-		if (r != EOK)
+-			goto Finish;
+-
+-		off = fblock * block_size;
+-		r = ext4_block_readbytes(file->mp->fs.bdev, off, u8_buf, size);
+-		if (r != EOK)
+-			goto Finish;
+-
+-		file->fpos += size;
+-
+-		if (rcnt)
+-			*rcnt += size;
+-	}
+-
+-Finish:
+-	ext4_fs_put_inode_ref(&ref);
+-	EXT4_MP_UNLOCK(file->mp);
+-	return r;
++    if (rcnt) *rcnt = 0;
++    if (!file || !file->mp || (!buf && size)) return EINVAL;
++    if (file->flags & O_WRONLY) return EPERM;
++    if (!size) return EOK;
++    EXT4_MP_LOCK(file->mp);
++    struct ext4_inode_ref ref;
++    int error = ext4_fs_get_inode_ref(&file->mp->fs, file->inode, &ref);
++    if (error) { EXT4_MP_UNLOCK(file->mp); return error; }
++    uint32_t block_size = ext4_sb_get_block_size(&file->mp->fs.sb);
++    file->fsize = ext4_inode_get_size(&file->mp->fs.sb, ref.inode);
++    uint64_t remaining = file->fpos < file->fsize ? file->fsize - file->fpos : 0;
++    if (remaining > size) remaining = size;
++    uint8_t *output = buf;
++    while (remaining && !error) {
++        uint64_t logical = file->fpos / block_size;
++        uint32_t within = (uint32_t)(file->fpos % block_size);
++        uint32_t amount = block_size - within;
++        if (amount > remaining) amount = (uint32_t)remaining;
++        if (logical > UINT32_MAX) { error = EFBIG; break; }
++        ext4_fsblk_t physical = 0;
++        error = ext4_fs_get_inode_dblk_idx(&ref, (uint32_t)logical, &physical, true);
++        if (error) break;
++        if (!physical) memset(output, 0, amount);
++        else error = ext4_block_readbytes(file->mp->fs.bdev,
++                                          physical * block_size + within, output, amount);
++        if (error) break;
++        file->fpos += amount; output += amount; remaining -= amount;
++        if (rcnt) *rcnt += amount;
++    }
++    int release = ext4_fs_put_inode_ref(&ref);
++    EXT4_MP_UNLOCK(file->mp);
++    return error ? error : release;
+ }
+ 
+ int ext4_fwrite(ext4_file *file, const void *buf, size_t size, size_t *wcnt)
+--- a/src/ext4_dir_idx.c
++++ b/src/ext4_dir_idx.c
+@@ -431,7 +431,10 @@
+ 	}
+ 
+ 	/* Fill the whole block with empty entry */
++	/* xEtch: initialize every serialized byte before calculating its CRC. */
++	memset(new_block.data, 0, block_size);
+ 	struct ext4_dir_en *be = (void *)new_block.data;
++	ext4_dir_en_set_inode(be, 0);
+ 
+ 	if (ext4_sb_feature_ro_com(sb, EXT4_FRO_COM_METADATA_CSUM)) {
+ 		uint16_t len = block_size - sizeof(struct ext4_dir_entry_tail);
+@@ -443,8 +446,6 @@
+ 	} else {
+ 		ext4_dir_en_set_entry_len(be, block_size);
+ 	}
+-
+-	ext4_dir_en_set_inode(be, 0);
+ 
+ 	ext4_trans_set_block_dirty(new_block.buf);
+ 	rc = ext4_block_set(dir->fs->bdev, &new_block);
+--- a/src/ext4_fs.c
++++ b/src/ext4_fs.c
+@@ -1188,7 +1188,8 @@
+ 
+ 	/* If sizes are equal, nothing has to be done. */
+ 	uint64_t old_size = ext4_inode_get_size(sb, inode_ref->inode);
+-	if (old_size == new_size)
++	if (old_size == new_size && !(new_size == 0 &&
++	    ext4_inode_has_flag(inode_ref->inode, EXT4_INODE_FLAG_EXTENTS)))
+ 		return EOK;
+ 
+ 	/* It's not supported to make the larger file by truncate operation */
+@@ -1229,7 +1230,8 @@
+ 	    (ext4_inode_has_flag(inode_ref->inode, EXT4_INODE_FLAG_EXTENTS))) {
+ 
+ 		/* Extents require special operation */
+-		if (diff_blocks_cnt) {
++		/* xEtch: reservations can extend beyond EOF, including empty files. */
++		{
+ 			r = ext4_extent_remove_space(inode_ref, new_blocks_cnt,
+ 						     EXT_MAX_BLOCKS);
+ 			if (r != EOK)
+--- a/src/ext4_journal.c
++++ b/src/ext4_journal.c
+@@ -275,10 +275,9 @@
+ 		header->chksum_size = 0;
+ 		header->chksum[0] = 0;
+ 
+-		/* First calculate crc32c checksum against fs uuid */
++		/* Commit blocks share the journal UUID checksum seed. */
+ 		checksum = ext4_crc32c(EXT4_CRC32_INIT, jbd_fs->sb.uuid,
+ 				       sizeof(jbd_fs->sb.uuid));
+-		/* Calculate crc32c checksum against tho whole block */
+ 		checksum = ext4_crc32c(checksum, header,
+ 				block_size);
+ 
+@@ -300,7 +299,7 @@
+ 
+ 	header->chksum_type = 0;
+ 	header->chksum_size = 0;
+-	header->chksum[0] = jbd_commit_csum(jbd_fs, header);
++	header->chksum[0] = to_be32(jbd_commit_csum(jbd_fs, header));
+ }
+ 
+ #if CONFIG_META_CSUM_ENABLE
+@@ -334,12 +333,13 @@
+ 		checksum = ext4_crc32c(EXT4_CRC32_INIT, jbd_fs->sb.uuid,
+ 				       sizeof(jbd_fs->sb.uuid));
+ 		/* Then calculate crc32c checksum against sequence no. */
++		sequence = to_be32(sequence);
+ 		checksum = ext4_crc32c(checksum, &sequence,
+ 				sizeof(uint32_t));
+ 		/* Calculate crc32c checksum against tho whole block */
+ 		checksum = ext4_crc32c(checksum, buf,
+ 				block_size);
+-	} else if (JBD_HAS_INCOMPAT_FEATURE(&jbd_fs->sb,
++	} else if (JBD_HAS_COMPAT_FEATURE(&jbd_fs->sb,
+ 				     JBD_FEATURE_COMPAT_CHECKSUM)) {
+ 		uint32_t block_size = jbd_get32(&jbd_fs->sb, blocksize);
+ 		/* Calculate crc32c checksum against tho whole block */
+@@ -361,7 +361,7 @@
+ 
+ 	if (ver == 2) {
+ 		struct jbd_block_tag *tag = __tag;
+-		tag->checksum = (uint16_t)to_be32(checksum);
++		tag->checksum = to_be16((uint16_t)checksum);
+ 	} else {
+ 		struct jbd_block_tag3 *tag = __tag;
+ 		tag->checksum = to_be32(checksum);
+@@ -1443,7 +1443,8 @@
+ 		return r;
+ 
+ 	journal->start = 0;
+-	journal->trans_id = 0;
++	/* xEtch: never reuse transaction IDs across clean worker sessions. */
++	journal->trans_id = journal->alloc_trans_id;
+ 	jbd_journal_write_sb(journal);
+ 	return jbd_write_sb(journal->jbd_fs);
+ }
+@@ -1781,11 +1782,12 @@
+ 		return rc;
+ 
+ 	header = (struct jbd_commit_header *)block.data;
++	memset(block.data, 0, journal->block_size);
+ 	jbd_set32(&header->header, magic, JBD_MAGIC_NUMBER);
+ 	jbd_set32(&header->header, blocktype, JBD_COMMIT_BLOCK);
+ 	jbd_set32(&header->header, sequence, trans->trans_id);
+ 
+-	if (JBD_HAS_INCOMPAT_FEATURE(&journal->jbd_fs->sb,
++	if (JBD_HAS_COMPAT_FEATURE(&journal->jbd_fs->sb,
+ 				JBD_FEATURE_COMPAT_CHECKSUM)) {
+ 		header->chksum_type = JBD_CRC32_CHKSUM;
+ 		header->chksum_size = JBD_CRC32_CHKSUM_SIZE;
+@@ -1812,6 +1814,7 @@
+ 	uint32_t desc_iblock = 0;
+ 	uint32_t data_iblock = 0;
+ 	char *tag_start = NULL, *tag_ptr = NULL;
++	char *last_tag = NULL;
+ 	struct jbd_buf *jbd_buf, *tmp;
+ 	struct ext4_fs *fs = journal->jbd_fs->inode_ref.fs;
+ 	uint32_t checksum = EXT4_CRC32_INIT;
+@@ -1886,13 +1889,15 @@
+ 			ext4_free(jbd_buf);
+ 			continue;
+ 		}
+-		checksum = jbd_block_csum(journal->jbd_fs,
+-					  jbd_buf->block.data,
+-					  checksum,
+-					  trans->trans_id);
+ 		if (((struct jbd_bhdr *)jbd_buf->block.data)->magic ==
+ 				to_be32(JBD_MAGIC_NUMBER))
+ 			is_escape = true;
++		/* xEtch: checksum the bytes serialized into the escaped log. */
++		uint32_t saved_magic = ((struct jbd_bhdr *)jbd_buf->block.data)->magic;
++		if (is_escape) ((struct jbd_bhdr *)jbd_buf->block.data)->magic = 0;
++		checksum = jbd_block_csum(journal->jbd_fs, jbd_buf->block.data,
++					 checksum, trans->trans_id);
++		((struct jbd_bhdr *)jbd_buf->block.data)->magic = saved_magic;
+ 
+ again:
+ 		if (!desc_iblock) {
+@@ -1902,6 +1907,8 @@
+ 				break;
+ 
+ 			bhdr = (struct jbd_bhdr *)desc_block.data;
++			memset(desc_block.data, 0, journal->block_size);
++			last_tag = NULL;
+ 			jbd_set32(bhdr, magic, JBD_MAGIC_NUMBER);
+ 			jbd_set32(bhdr, blocktype, JBD_DESCRIPTOR_BLOCK);
+ 			jbd_set32(bhdr, sequence, trans->trans_id);
+@@ -1940,6 +1947,16 @@
+ 				tag_tbl_size,
+ 				&tag_info);
+ 		if (rc != EOK) {
++			/* xEtch: LAST_TAG terminates each descriptor, not just the transaction. */
++			if (last_tag) {
++				if (jbd_has_csum(&journal->jbd_fs->sb) == 3) {
++					struct jbd_block_tag3 *tag = (void *)last_tag;
++					jbd_set32(tag, flags, jbd_get32(tag, flags) | JBD_FLAG_LAST_TAG);
++				} else {
++					struct jbd_block_tag *tag = (void *)last_tag;
++					jbd_set16(tag, flags, jbd_get16(tag, flags) | JBD_FLAG_LAST_TAG);
++				}
++			}
+ 			jbd_meta_csum_set(journal->jbd_fs, bhdr);
+ 			desc_iblock = 0;
+ 			rc = jbd_block_set(journal->jbd_fs, &desc_block);
+@@ -1975,12 +1992,22 @@
+ 		}
+ 		jbd_buf->jbd_lba = data_iblock;
+ 
++		last_tag = tag_ptr;
+ 		tag_ptr += tag_info.tag_bytes;
+ 		tag_tbl_size -= tag_info.tag_bytes;
+ 
+ 		i++;
+ 	}
+ 	if (rc == EOK && desc_iblock) {
++		if (last_tag) {
++			if (jbd_has_csum(&journal->jbd_fs->sb) == 3) {
++				struct jbd_block_tag3 *tag = (void *)last_tag;
++				jbd_set32(tag, flags, jbd_get32(tag, flags) | JBD_FLAG_LAST_TAG);
++			} else {
++				struct jbd_block_tag *tag = (void *)last_tag;
++				jbd_set16(tag, flags, jbd_get16(tag, flags) | JBD_FLAG_LAST_TAG);
++			}
++		}
+ 		jbd_meta_csum_set(journal->jbd_fs,
+ 				(struct jbd_bhdr *)bhdr);
+ 		trans->data_csum = checksum;

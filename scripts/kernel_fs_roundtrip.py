@@ -8,6 +8,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 import stat
@@ -71,18 +72,18 @@ def prepare_checksum_v2(image):
     assert journal_info(image)["checksum_version"]==2
 
 
-def fragment_fixture(mount):
+def fragment_fixture(mount, unit=64<<10):
     """Fill with interleaved durable allocations, delete every other file.
 
     Keeping the tail below 2 MiB forces the later 8 MiB file to use holes.
     The caller independently measures its physical allocation after unmount.
     """
-    unit=64<<10
+    if unit not in (4096,64<<10): raise ValueError("Unsupported fragmentation allocation unit")
     anchors=mount/"anchors"; holes=mount/"holes"
     anchors.mkdir(); holes.mkdir(); (mount/"pool").mkdir()
     expected={}
     count=0
-    while count<1024:
+    while count<(8192 if unit==4096 else 1024):
         stats=os.statvfs(mount)
         if stats.f_bavail*stats.f_frsize < (1<<20)+unit*2: break
         for directory,color in [(anchors,(count*17+3)%256),(holes,(count*29+7)%256)]:
@@ -105,7 +106,30 @@ def fragment_fixture(mount):
     return {"anchors":count,"unit_size":unit,"expected":expected}
 
 
-def force_journal_replay(image, source, root, corrupt_tag=False):
+def inode_disk_offset(image, inode):
+    """Locate an inode in a private test image, without mounting it."""
+    with image.open("rb") as stream:
+        stream.seek(1024); sb=stream.read(1024)
+        assert struct.unpack_from("<H",sb,56)[0]==0xef53
+        bs=1024 << struct.unpack_from("<I",sb,24)[0]
+        count=struct.unpack_from("<I",sb,0)[0]
+        per_group=struct.unpack_from("<I",sb,40)[0]
+        size=struct.unpack_from("<H",sb,88)[0]
+        assert 0<inode<=count and per_group and 128<=size<=bs
+        group,index=divmod(inode-1,per_group)
+        wide=bool(struct.unpack_from("<I",sb,96)[0]&0x80)
+        desc_size=struct.unpack_from("<H",sb,254)[0] if wide else 32
+        assert 32<=desc_size<=bs
+        stream.seek((2 if bs==1024 else 1)*bs+group*desc_size)
+        desc=stream.read(desc_size)
+        table=struct.unpack_from("<I",desc,8)[0]
+        if wide: table|=struct.unpack_from("<I",desc,40)[0]<<32
+        offset=table*bs+index*size
+        assert offset+size<=image.stat().st_size
+        return offset,bs,size
+
+
+def force_journal_replay(image, source, root, corrupt_tag=False, restore_inode=None):
     source = Path(source).resolve(strict=True)
     if not source.is_relative_to(root) or not source.is_file():
         raise ValueError("Replay reference must be a private image")
@@ -136,9 +160,17 @@ def force_journal_replay(image, source, root, corrupt_tag=False):
             jsb[252:256] = bytes(4)
             struct.pack_into(">I", jsb, 252, crc32c(jsb[:1024]))
         stream.seek(journal_block*bs); stream.write(jsb)
-        # Roll back the home directory block. Correct names can now only be
+        # Roll back home metadata. Correct names/inode fields must then be
         # recovered by the real kernel replaying the backend's last journal.
-        root_block = block(2, 0)
+        if restore_inode:
+            if not re.fullmatch(r"[A-Za-z0-9_-]+\.bin",restore_inode): raise ValueError("Invalid replay file")
+            text=run("debugfs","-R",f"stat /{restore_inode}",image)
+            inode=int(re.search(r"Inode:\s*(\d+)",text).group(1))
+            offset,inode_bs,_=inode_disk_offset(image,inode)
+            assert inode_bs==bs and inode_disk_offset(source,inode)[0]==offset
+            root_block=offset//bs
+        else:
+            root_block = block(2, 0)
         with source.open("rb") as original:
             original.seek(root_block*bs); old = original.read(bs)
         stream.seek(root_block*bs); stream.write(old)
@@ -177,7 +209,7 @@ def validate(request):
     if request.get("force_replay_source"):
         if filesystem != "ext4":
             raise ValueError("JBD2 replay applies only to ext4")
-        force_journal_replay(image, request["force_replay_source"], root,request.get("corrupt_journal_tag",False))
+        force_journal_replay(image, request["force_replay_source"], root,request.get("corrupt_journal_tag",False),request.get("force_replay_inode_table"))
         missing=request.get("force_replay_expect_missing")
         if missing:
             result=subprocess.run(["debugfs","-R",f"stat /{missing}",str(image)],capture_output=True,text=True,timeout=30)
@@ -187,11 +219,11 @@ def validate(request):
     mounted = False
     checks = []
     if request.get("force_replay_source"):
-        checks.append("kernel_replays_backend_journal_after_home_directory_rollback")
+        checks.append("kernel_replays_backend_journal_after_home_metadata_rollback")
     try:
         run("mount", "-t", filesystem, "-o", "loop,nosuid,nodev,noexec,noatime", image, mount)
         mounted = True
-        fixture=fragment_fixture(mount) if request.get("fragment_fixture") else None
+        fixture=fragment_fixture(mount,request.get("fragment_unit",64<<10)) if request.get("fragment_fixture") else None
         for name, expected in request.get("expect", {}).items():
             path = relative(mount, name)
             with path.open("rb") as stream:
@@ -221,6 +253,18 @@ def validate(request):
         for old, new in request.get("rename", []):
             relative(mount, old).rename(relative(mount, new))
             checks.append(f"kernel_rename:{old}")
+        for old,new in request.get("links",[]):
+            os.link(relative(mount,old),relative(mount,new))
+            checks.append(f"kernel_hardlink:{old}")
+        for name,metadata in request.get("metadata",{}).items():
+            path=relative(mount,name)
+            if "mode" in metadata: path.chmod(metadata["mode"])
+            if "uid" in metadata or "gid" in metadata:
+                os.chown(path,metadata.get("uid",-1),metadata.get("gid",-1))
+            checks.append(f"kernel_metadata:{name}")
+        for name in request.get("unlink",[]):
+            relative(mount,name).unlink()
+            checks.append(f"kernel_unlink:{name}")
         run("sync", "-f", mount)
     finally:
         if mounted:

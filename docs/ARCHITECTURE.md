@@ -12,6 +12,8 @@ FAT 继续使用 `fatfs`；`extended.rs` 通过固定版本 `fstool = 0.5.0` 的
 
 exFAT/ext4 写入由应用层显式实验参数控制，成功操作记录 `experimental_filesystem`。NTFS 写入通过 `ntfs.rs` 调用独立 NTFS-3G 2026.9.28 工作进程，其自定义设备回调由父进程通过管道访问分区窗口。库默认宿主设备 I/O 被禁用。覆盖普通文件保留原 inode/MFT 和其安全描述符及其他属性，失败时丢弃子覆盖层。组件评估、支持边界与验证见 [NTFS 说明](NTFS.md)。
 
+`ext4_worker.rs` 提供可选的 lwext4 P0，默认保留 fstool 作为原实现和对照。worker 只接收操作参数与卷容量，通过有界 stdio 块请求访问父进程的分区窗口，不能直接打开镜像。父进程复用卷状态、inode/xattr 检查、子进程生命周期和提交策略，并在写入应答前下传 NBD FLUSH。固定版本的 BSD lwext4 源文件和独立 BSD extent 模块编译为 `xetch-ext4-worker`，上游 GPL extent/xattr 源文件不进入源码包或编译输入；清单哈希检查、源码补丁与范围见 [P0 报告](LWEXT4-P0.md)。CLI、GUI 和 JSON-RPC 请求无需变化。
+
 `crates/xetch-cli`：clap 参数入口、JSON-RPC stdio 传输。两者均调用 `xetch_core::execute(method, params)`。
 
 `apps/windows`：C# / WinUI 3 原生 GUI。`BackendClient` 负责独立后端进程与串行 JSON-RPC 请求，磁盘和文件系统逻辑不进入界面代码。异步调用避免阻塞 UI，按钮忙碌状态防止重复请求；关闭窗口时先等待当前操作完成。标准输出只承载协议，诊断流持续排空以免管道阻塞。保存选择器只返回路径，后端执行拒绝覆盖发布。普通构建不含 GUI 集成测试入口。

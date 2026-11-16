@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "platform": "native Windows x64",
+  "framework": "WinUI 3 / .NET 8",
+  "filesystem": "ext4",
+  "created_image": false,
+  "table": null,
+  "checks": [
+    "native_window_loaded_and_dependencies_ready",
+    "expected_partition_presented",
+    "experimental_filesystem_initially_read_only",
+    "experimental_toggle_enables_filesystem_edits",
+    "import_refreshes_visible_file_list",
+    "client_file_export_bytes_match",
+    "persistent_session_resume_restores_view",
+    "gui_edit_and_export_completed_without_error",
+    "controls_reenabled_after_async_work",
+    "rename_action_available_for_selected_regular_file",
+    "backend_error_is_visible_in_infobar",
+    "failed_gui_edit_does_not_advance_checkpoint",
+    "gui_recovers_after_rejected_operation",
+    "source_image_unchanged_after_gui_edits",
+    "native_winui_visual_tree_rendered_to_png",
+    "independent_e2fsck_clean",
+    "independent_debugfs_exported_payload_matches"
+  ],
+  "error": null,
+  "source_unchanged": true,
+  "limits": [
+    "Controller integration and actual XAML rendering; picker and input automation not exercised"
+  ],
+  "engine": "lwext4",
+  "profile": "bsd-extents-p0",
+  "backend_sha256": "6baea44682f8364c963473fdfde8f3516a7c586b68764e9e3bea38d8a89f714e",
+  "worker_sha256": "b10555cc4083080dcf35f3a8112599eb266409ab112866f86efc1840fc713ba9",
+  "frontend_dll_sha256": "523d5d45db159b05dcbf6fe837acf43fa7a6536f70bd418824c4c92dfe179b40",
+  "source_block_size": 2048,
+  "source_journal_checksum_version": 2,
+  "independent_fsck": "e2fsck 1.46.5 -fn: clean",
+  "payload_sha256": "b740eaaeef346f60f4e404238ab51ba2daf09da25188efdc1509f16363b0f0d0"
+}

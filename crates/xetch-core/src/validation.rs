@@ -23,7 +23,7 @@ pub(crate) fn checkpoint(point: &str, path: &Path) -> Result<()> {
     let mut file = OpenOptions::new()
         .write(true)
         .create_new(true)
-        .open(record)?;
+        .open(&record)?;
     serde_json::to_writer(
         &mut file,
         &serde_json::json!({
@@ -46,6 +46,17 @@ pub(crate) fn checkpoint(point: &str, path: &Path) -> Result<()> {
                 std::io::Error::other("validation controller did not interrupt paused backend")
                     .into(),
             )
+        }
+        Ok("gate") => {
+            let release = Path::new(&record).with_extension("continue");
+            let deadline = Instant::now() + Duration::from_secs(60);
+            while Instant::now() < deadline {
+                if release.is_file() {
+                    return Ok(());
+                }
+                std::thread::sleep(Duration::from_millis(10));
+            }
+            Err(std::io::Error::other("validation gate was not released").into())
         }
         _ => Err(std::io::Error::other("unknown validation mode").into()),
     }

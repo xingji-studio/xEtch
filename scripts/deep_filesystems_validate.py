@@ -75,6 +75,25 @@ class Validation:
                        "cases": [], "limits": ["Fault injection does not simulate physical power loss."]}
         if self.fault_proxy:
             self.report["fault_proxy_sha256"] = sha(self.fault_proxy)
+        engine = getattr(args, "ext4_engine", None) or os.environ.get("XETCH_EXT4_ENGINE", "fstool")
+        if engine not in ("fstool", "lwext4"):
+            raise ValueError("Unknown ext4 engine")
+        self.backend.env["XETCH_EXT4_ENGINE"] = engine
+        self.report["ext4_engine"] = engine
+        forwarded = ["XETCH_EXT4_ENGINE"]
+        if engine == "lwext4":
+            source = getattr(args, "ext4_worker", None) or Path(os.environ.get("XETCH_EXT4_WORKER", ROOT / (
+                "target/windows/release/xetch-ext4-worker.exe" if self.backend.windows else "target/release/xetch-ext4-worker")))
+            worker = runtime / ("xetch-ext4-worker.exe" if self.backend.windows else "xetch-ext4-worker")
+            shutil.copy2(source, worker)
+            self.backend.env["XETCH_EXT4_WORKER"] = self.backend.host(worker)
+            forwarded.append("XETCH_EXT4_WORKER")
+            version = subprocess.run([str(worker), "--version"], capture_output=True, check=True, env=self.backend.env)
+            self.report["ext4_worker"] = {"sha256": sha(worker), **json.loads(version.stdout)}
+            assert self.report["ext4_worker"]["engine"] == "lwext4"
+            assert self.report["ext4_worker"]["protocol"] == 1
+        if self.backend.windows and os.name != "nt":
+            self.backend.env["WSLENV"] = ":".join(filter(None, [self.backend.env.get("WSLENV", ""), *forwarded]))
 
     def save(self):
         self.args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -370,6 +389,8 @@ class Validation:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--binary", type=Path, default=ROOT/"target/release/xetch")
+    parser.add_argument("--ext4-engine", choices=["fstool", "lwext4"])
+    parser.add_argument("--ext4-worker", type=Path)
     parser.add_argument("--directory", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--suite", choices=["system", "large", "fault", "all"], default="system")

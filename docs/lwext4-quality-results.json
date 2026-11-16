@@ -1,0 +1,140 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "recorded_at": "2026-11-16T03:54:40.451904+00:00",
+  "platforms": [
+    {
+      "platform": "linux",
+      "rust_workspace_all_features": {
+        "status": "pass",
+        "command": "cargo test --locked --offline --workspace --all-features -- --include-ignored --test-threads=1",
+        "passed": 32,
+        "failed": 0,
+        "ignored": 0,
+        "log_sha256": "6000dffe48398941e60f954701ceefd6b6b85dbacf2f4e605ed312d219814b14"
+      },
+      "clippy_all_targets_all_features": {
+        "status": "pass",
+        "command": "cargo clippy --locked --offline --workspace --all-targets --all-features -- -D warnings",
+        "log_sha256": "aec6d4d2b3198c06b8e9d9823ac10843c20a5b7394ac0108da1af18e26dfbe0c"
+      },
+      "p0_report_sha256": "398a7e63acf947f09f827b38c33a88a48bf1ff0c0691847c6daffc8880c7769b",
+      "final_worker_targeted_regressions": {
+        "status": "pass",
+        "passed": 2,
+        "log_sha256": "11da60cc45705e6cde0537c2d944c79d5ab1cb7c1aa058dc9695db80170478dd",
+        "note": "Rechecked with the final worker after its ENOSPC diagnostic text was clarified; the Rust sources are the same as in the full workspace run."
+      }
+    },
+    {
+      "platform": "windows",
+      "rust_workspace_all_features": {
+        "status": "pass",
+        "command": "cargo test --locked --offline --workspace --all-features -- --include-ignored --test-threads=1",
+        "passed": 30,
+        "failed": 0,
+        "ignored": 0,
+        "log_sha256": "a7494be2c50b84b1500e935407af390a3536962d81c711283bcaa7cf801b9af1"
+      },
+      "clippy_all_targets_all_features": {
+        "status": "pass",
+        "command": "cargo clippy --locked --offline --workspace --all-targets --all-features -- -D warnings",
+        "evidence": "Native PowerShell helper completes clippy before the successful test run; helper uses Invoke-Tool with checked exit status."
+      },
+      "p0_report_sha256": "745b82345b79de3352fe24be93e2bed3ad4ab71d9e3d523961a731938a46e3d6"
+    }
+  ],
+  "rust_tests_passed": 62,
+  "rust_tests_failed": 0,
+  "rust_tests_ignored": 0,
+  "format": {
+    "rustfmt": "pass",
+    "clang_format_own_c_sources": "pass"
+  },
+  "python_modified_scripts_compile": "pass",
+  "ci_yaml": {
+    "status": "pass",
+    "jobs": 5,
+    "remote_execution_claimed": false
+  },
+  "source_policy": {
+    "status": "pass",
+    "checks": [
+      {
+        "case": "pinned_inventory",
+        "status": "pass",
+        "files": 47,
+        "compiled_bsd_sources": 19
+      },
+      {
+        "case": "unreviewed_source_change",
+        "status": "pass",
+        "rejection": "Unreviewed lwext4 source change: src/ext4.c"
+      },
+      {
+        "case": "missing_source",
+        "status": "pass",
+        "rejection": "lwext4 source inventory changed: {'src/ext4.c'}"
+      },
+      {
+        "case": "unexpected_compiler_source",
+        "status": "pass",
+        "rejection": "lwext4 source inventory changed: {'src/unreviewed.c'}"
+      },
+      {
+        "case": "excluded_gpl_source_present",
+        "status": "pass",
+        "rejection": "lwext4 source inventory changed: {'src/ext4_extent.c'}"
+      },
+      {
+        "case": "gpl_notice_even_with_revised_hash",
+        "status": "pass",
+        "rejection": "Disallowed source notice: src/ext4.c"
+      }
+    ],
+    "pinned_revision": "58bcf89a121b72d4fb66334f1693d3b30e4cb9c5",
+    "vendor_inventory_sha256": "7cb16da8635271e6feb6432d5872e4e20e488ec9b4c38b5a2f0c96619328471f",
+    "reviewed_patch_sha256": "9ab31ac8697104ca393fd5dee236f90a1feb180f90d6f46a5036e6636cd6bb5b",
+    "reversed_patch_recovers_all_original_hashes": true,
+    "original_file_hashes_verified": 47,
+    "excluded_gpl_sources": [
+      "src/ext4_extent.c",
+      "src/ext4_xattr.c"
+    ],
+    "new_extent_source_license": "BSD-3-Clause",
+    "upstream_notices": "BSD-2-Clause/BSD-3-Clause retained",
+    "windows_git_checkout_autocrlf_true": {
+      "status": "pass",
+      "selected_files": 56,
+      "audited_vendor_files": 47,
+      "compiled_source_inputs": 22,
+      "byte_identical_to_tested_inputs_and_evidence": true
+    }
+  },
+  "stress_totals": {
+    "candidate_operations": 4000,
+    "fstool_control_operations": 4000,
+    "snapshot_kernel_roundtrips": 504,
+    "final_stress_kernel_checks": 8
+  },
+  "windows_gui": {
+    "status": "pass",
+    "checks": 17,
+    "report_sha256": "2ec63ee644f3252184d0b8ce6623b446b46fe768cc20f91db5015a40cc510e3f",
+    "independent_fsck_and_payload_readback": "pass",
+    "input_automation_claimed": false
+  },
+  "cleanup": {
+    "status": "pass",
+    "active_native_windows_backend_worker_qemu_probe_gui_processes": 0,
+    "active_linux_test_processes": 0,
+    "active_suite_controllers": 0,
+    "mounted_test_images": 0,
+    "read_only_checks": "Native Windows Win32_Process, Linux /proc processes, WSL root mountinfo and loop backing paths"
+  },
+  "limits": [
+    "Finite seeded and named-boundary tests do not certify arbitrary interruption or physical power loss.",
+    "The selected engine is still experimental and opt-in; fstool remains the default.",
+    "xattr/default-ACL mutations, macOS/ARM64 and the worker dense >4 GiB path are outside this completed P0."
+  ]
+}

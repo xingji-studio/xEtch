@@ -1,6 +1,7 @@
 //! Native user-space adapters for clean exFAT, ext4 and NTFS volumes.
 //! Writes are experimental and only run inside a transactional child overlay.
 use crate::{
+    ext4_worker,
     files::Entry,
     nbd::{Disk, Window},
     partition::Partition,
@@ -84,6 +85,53 @@ pub fn check_clean(dev: &mut dyn BlockDevice, name: &str) -> Result<()> {
     Ok(())
 }
 
+/// Share admission policy with the P0 engine; filesystem mutations themselves
+/// are performed by lwext4. Excluded xattr semantics must never be silently lost.
+pub(crate) fn worker_preflight(
+    dev: &mut dyn BlockDevice,
+    write: bool,
+    paths: &[&str],
+) -> Result<()> {
+    check_clean(dev, "ext4")?;
+    let ext = fstool::fs::ext::Ext::open(dev).map_err(map_error)?;
+    check_journal(&ext, dev)?;
+    if !write {
+        return Ok(());
+    }
+    ext.check_writable().map_err(map_error)?;
+    for path in paths {
+        if path.split('/').any(|part| part.len() > 255) {
+            return Err(Error::Invalid(
+                "ext4 file names cannot exceed 255 UTF-8 bytes".into(),
+            ));
+        }
+        check_ext_path(&ext, dev, path, false)?;
+        let mut inode = 2;
+        let parts: Vec<_> = path.split('/').filter(|p| !p.is_empty()).collect();
+        for step in 0..=parts.len() {
+            if !ext.read_xattrs(dev, inode).map_err(map_error)?.is_empty() {
+                return Err(Error::Unsupported("lwext4 BSD P0 protects paths with xattrs or default ACLs; use the fstool engine".into()));
+            }
+            if step == parts.len() {
+                break;
+            }
+            match ext
+                .lookup_dir_entry(dev, inode, parts[step].as_bytes())
+                .map_err(map_error)?
+            {
+                Some(next) => inode = next,
+                None if step + 1 == parts.len() => break,
+                None => {
+                    return Err(Error::Invalid(
+                        "ext4 parent directory does not exist".into(),
+                    ))
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
 fn with_fs<T>(
     disk: &mut Disk,
     p: &Partition,
@@ -131,6 +179,9 @@ fn with_fs<T>(
 }
 
 pub fn list(disk: &mut Disk, p: &Partition, path: &str) -> Result<Vec<Entry>> {
+    if ext4_worker::selected(&p.filesystem)? {
+        return ext4_worker::list(disk, p, path);
+    }
     with_fs(disk, p, false, &[], false, |fs, dev| {
         let entries = fs
             .list(dev, Path::new(&format!("/{path}")))
@@ -149,6 +200,9 @@ pub fn list(disk: &mut Disk, p: &Partition, path: &str) -> Result<Vec<Entry>> {
     })
 }
 pub fn get<W: Write>(disk: &mut Disk, p: &Partition, path: &str, to: &mut W) -> Result<u64> {
+    if ext4_worker::selected(&p.filesystem)? {
+        return ext4_worker::get(disk, p, path, to);
+    }
     with_fs(disk, p, false, &[], false, |fs, dev| {
         let path = format!("/{path}");
         let path = Path::new(&path);
@@ -167,6 +221,9 @@ pub fn put<R: Read + Seek>(
     from: &mut R,
     replace: bool,
 ) -> Result<()> {
+    if ext4_worker::selected(&p.filesystem)? {
+        return ext4_worker::put(disk, p, path, from, replace);
+    }
     with_fs(disk, p, true, &[path], false, |fs, dev| {
         let path = format!("/{path}");
         let path = Path::new(&path);
@@ -231,6 +288,9 @@ pub fn put<R: Read + Seek>(
     })
 }
 pub fn mkdir(disk: &mut Disk, p: &Partition, path: &str) -> Result<()> {
+    if ext4_worker::selected(&p.filesystem)? {
+        return ext4_worker::mutate(disk, p, "mkdir", path, None);
+    }
     with_fs(disk, p, true, &[path], false, |fs, dev| {
         let path = format!("/{path}");
         let path = Path::new(&path);
@@ -246,6 +306,9 @@ pub fn mkdir(disk: &mut Disk, p: &Partition, path: &str) -> Result<()> {
     })
 }
 pub fn remove(disk: &mut Disk, p: &Partition, path: &str) -> Result<()> {
+    if ext4_worker::selected(&p.filesystem)? {
+        return ext4_worker::mutate(disk, p, "remove", path, None);
+    }
     with_fs(disk, p, true, &[path], true, |fs, dev| {
         let path = format!("/{path}");
         let path = Path::new(&path);
@@ -254,6 +317,9 @@ pub fn remove(disk: &mut Disk, p: &Partition, path: &str) -> Result<()> {
     })
 }
 pub fn rename(disk: &mut Disk, p: &Partition, source: &str, destination: &str) -> Result<()> {
+    if ext4_worker::selected(&p.filesystem)? {
+        return ext4_worker::mutate(disk, p, "rename", source, Some(destination));
+    }
     with_fs(disk, p, true, &[source, destination], false, |fs, dev| {
         let source = format!("/{source}");
         let destination = format!("/{destination}");

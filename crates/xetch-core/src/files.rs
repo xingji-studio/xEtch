@@ -31,7 +31,7 @@ pub fn check_write(disk: &mut Disk, index: Option<u32>, experimental: bool) -> R
     Ok(p.filesystem)
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, serde::Deserialize)]
 pub struct Entry {
     pub name: String,
     pub is_directory: bool,

@@ -34,6 +34,8 @@
 
 附加字段 `filesystem_operations` 按文件系统列出操作名：`list/get/put/mkdir/remove`、`rename-file/rename-directory/move-file/move-directory`；exFAT/ext4 另有 `create-none/create-mbr/create-gpt`。它描述操作范围，不取消实验开关或卷状态检查。
 
+可选 ext4 worker 通过后端进程环境 `XETCH_EXT4_ENGINE=lwext4` 选择，`XETCH_EXT4_WORKER` 可指定可执行文件；未设置或使用 `fstool` 时调用原有实现。无需更改客户端请求或响应格式，实验开关和提交规则相同。未知引擎返回 `invalid_argument`，缺少所选 worker 返回依赖错误，不自动切换引擎。lwext4 P0 拒绝涉及 xattr/default ACL 的修改，格式化仍使用原有实现；范围见 [lwext4 P0](LWEXT4-P0.md)。
+
 当前请求串行执行，每次写入自动提交一个工作区检查点。`workspace.apply` 导出新镜像，不清除会话，不写回源镜像。取消、异步作业、进度事件及大文件专用传输尚未实现；当前文件内容通过本地文件路径传递。
 
 FAT 的 `file.rename` 支持文件移动和同级文件夹改名；跨父目录移动文件夹返回 unsupported。exFAT/ext4 支持文件与带内容目录的改名和跨父目录移动，沿用实验开关，拒绝移入自身后代及覆盖已有目标。exFAT 按卷 up-case 表判断名称，允许仅改变大小写；ext4 区分大小写。NTFS 支持文件改名/移动，目录改名返回 unsupported。NTFS 拒绝系统元数据路径、脏卷、休眠卷和压缩/EFS/reparse 文件修改，详见 [NTFS 支持边界](NTFS.md)。exFAT/ext4 的连续分配、日志及元数据限制见 [支持说明](EXFAT-EXT4.md)。

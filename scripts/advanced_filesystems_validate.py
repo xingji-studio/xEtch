@@ -111,6 +111,9 @@ def independent_model(filesystem,image,files,directories):
             for line in listing.splitlines():
                 if not line.startswith("/"): continue
                 fields=line.split("/")
+                # debugfs also displays deleted directory slots; the kernel
+                # namespace excludes inode zero regardless of stale name bytes.
+                if int(fields[1])==0: continue
                 name=fields[5]
                 if name in (".",".."): continue
                 guest=path+"/"+name
@@ -140,6 +143,7 @@ class Advanced(Validation):
             frozen = self.root/"runtime"/("xetch-validation.exe" if self.backend.windows else "xetch-validation")
             shutil.copy2(source, frozen)
             self.injected = Runner(frozen, args.qemu_directory)
+            self.injected.env = self.backend.env.copy()
             self.report["validation_binary_sha256"] = sha(frozen)
 
     def kill(self, process, pid):
@@ -475,6 +479,9 @@ class Advanced(Validation):
                         # Empty models still exercise a real read operation.
                         method="file.list"; params={"workspace":workspace,"path":"/pool"}
                     record={"step":step,"kind":kind,"method":method,"params":{k:str(v) if isinstance(v,Path) else v for k,v in params.items()},"expected_failure":expected_failure}
+                    if method=="file.put":
+                        content=payload.read_bytes()
+                        record.update(payload_size=len(content),payload_sha256=hashlib.sha256(content).hexdigest())
                     journal.write(json.dumps(record,ensure_ascii=False)+"\n"); journal.flush()
                     before=(workspace/"workspace.json").read_bytes()
                     try:
@@ -544,6 +551,8 @@ class Advanced(Validation):
 def arguments():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--binary",type=Path,default=ROOT/"target/release/xetch")
+    parser.add_argument("--ext4-engine",choices=["fstool","lwext4"])
+    parser.add_argument("--ext4-worker",type=Path)
     parser.add_argument("--validation-binary",type=Path)
     parser.add_argument("--directory",type=Path,required=True)
     parser.add_argument("--output",type=Path,required=True)

@@ -1,3 +1,10 @@
 # These entrypoints must also run from a Windows checkout in WSL.
 /xetch text eol=lf
 /scripts/runtime/*.sh text eol=lf
+
+# Audited lwext4 inputs and recorded evidence use byte-exact SHA-256 hashes.
+/vendor/lwext4/** text eol=lf
+/vendor/lwext4-origin.json text eol=lf
+/vendor/lwext4-xetch.patch text eol=lf
+/native/ext4-worker/** text eol=lf
+/docs/lwext4-*-results.json text eol=lf

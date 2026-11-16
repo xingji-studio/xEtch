@@ -37,6 +37,17 @@ jobs:
           python3 scripts/package_validate.py --package dist/xetch-linux-x64 --directory artifacts/package-linux-validation --output artifacts/package-linux-results.json
       - run: python3 scripts/ntfs_validate.py --directory artifacts/ntfs-linux --output artifacts/ntfs-linux-results.json --large-volume
       - run: python3 scripts/build_ntfs_worker.py --target windows
+      - name: Build optional BSD ext4 workers
+        run: |
+          python3 scripts/build_ext4_worker.py
+          python3 scripts/build_ext4_worker.py --target windows
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-ext4-worker
+          path: |
+            target/windows/release/xetch-ext4-worker.exe
+            target/windows/release/ext4-worker-profile.json
+            target/windows/release/ext4-worker-licenses/
       - uses: actions/upload-artifact@v4
         with:
           name: windows-ntfs-worker
@@ -73,8 +84,11 @@ jobs:
         with:
           python-version: '3.12'
       - run: sudo apt-get update && sudo apt-get install -y qemu-utils qemu-system-common exfatprogs e2fsprogs
-      - run: cargo build --locked --release --workspace --bins --example qsd_fault_proxy
+      - run: cargo build --locked --release --workspace --bins --example qsd_fault_proxy --example ext4_protocol_probe
       - run: cargo build --locked --release -p xetch-cli --features validation-hooks --target-dir target/validation-linux
+      - run: python3 scripts/build_ext4_worker.py
+      - name: BSD lwext4 P0 engine and existing-engine differential matrix
+        run: python3 scripts/lwext4_validate.py --suite all --directory artifacts/lwext4-linux --output artifacts/lwext4-linux-results.json
       - name: NBD startup collision recovery and retry bound
         run: python3 scripts/nbd_startup_validate.py --directory artifacts/nbd-startup-linux --output artifacts/nbd-startup-linux-results.json
       - name: Kernel roundtrips, files above 4 GiB and crash recovery
@@ -89,6 +103,10 @@ jobs:
             artifacts/deep-linux-results.json
             artifacts/advanced-linux-results.json
             artifacts/nbd-startup-linux-results.json
+            artifacts/lwext4-linux-results.json
+            artifacts/lwext4-linux/**/operations.jsonl
+            target/release/ext4-worker-profile.json
+            target/release/ext4-worker-licenses/
   windows-images:
     needs: disk-images
     runs-on: windows-latest
@@ -102,6 +120,10 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: windows-ntfs-worker
+          path: target/release
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-ext4-worker
           path: target/release
       - uses: actions/setup-dotnet@v4
         with:
