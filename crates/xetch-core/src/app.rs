@@ -17,6 +17,14 @@ use std::{
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
+struct DeviceParams {
+    id: String,
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct EmptyParams {}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 struct ImageParams {
     image: PathBuf,
 }
@@ -115,6 +123,17 @@ fn params<T: serde::de::DeserializeOwned>(value: Value) -> Result<T> {
 pub fn execute(method: &str, value: Value) -> Result<Value> {
     match method {
         "system.capabilities" => Ok(tools::doctor()),
+        "device.list" => {
+            let _: EmptyParams = params(value)?;
+            Ok(serde_json::to_value(crate::devices::enumerate()?)?)
+        }
+        "device.inspect" => {
+            let p: DeviceParams = params(value)?;
+            crate::devices::inspect(&p.id)
+        }
+        "device.open" | "device.commit" | "device.write" | "device.confirm" | "device.recover" => {
+            Err(Error::Unsupported("physical device editing is disabled; only device.list and device.inspect are available".into()))
+        }
         "image.inspect" => {
             let p: ImageParams = params(value)?;
             let info = tools::info(&p.image, false)?;

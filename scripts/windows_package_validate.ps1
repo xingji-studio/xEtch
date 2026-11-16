@@ -28,6 +28,8 @@ try {
     $capabilities = Invoke-XetchPackage @("doctor")
     Check (@($capabilities.tools | Where-Object {-not $_.available}).Count -eq 0) "bundled_qemu_without_PATH_or_development_overrides"
     Check ($capabilities.capabilities.ntfs_write -eq $manifest.ntfs_worker) "bundled_ntfs_worker_matches_package"
+    $devices = Invoke-XetchPackage @("device", "list")
+    Check ($devices.read_only -and -not $devices.write_enabled -and @($devices.devices | Where-Object { $_.protection.write_allowed }).Count -eq 0) "relocated_read_only_devices_without_development_environment"
     $image = Join-Path $Directory "source.img"
     $workspace = Join-Path $Directory "session"
     $payload = Join-Path $Directory "payload.txt"

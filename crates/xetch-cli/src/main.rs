@@ -27,6 +27,11 @@ struct Cli {
 enum Command {
     /// Check QEMU dependencies and supported operations.
     Doctor,
+    /// Discover host disks/partitions and mandatory protection reasons (read-only).
+    Device {
+        #[command(subcommand)]
+        command: DeviceCommand,
+    },
     /// Inspect image format, partitions and filesystems.
     Inspect { image: PathBuf },
     /// Create a FAT32 or experimental exFAT/ext4 image with an optional partition table.
@@ -82,6 +87,11 @@ enum Command {
         #[arg(long, required = true)]
         stdio: bool,
     },
+}
+#[derive(Subcommand)]
+enum DeviceCommand {
+    List,
+    Inspect { id: String },
 }
 #[derive(Subcommand)]
 enum WorkspaceCommand {
@@ -200,6 +210,12 @@ fn edit_params(e: Edit, path: String) -> Value {
 fn request(command: Command) -> (&'static str, Value) {
     match command {
         Command::Doctor => ("system.capabilities", json!({})),
+        Command::Device {
+            command: DeviceCommand::List,
+        } => ("device.list", json!({})),
+        Command::Device {
+            command: DeviceCommand::Inspect { id },
+        } => ("device.inspect", json!({"id":id})),
         Command::Inspect { image } => ("image.inspect", json!({"image":image})),
         Command::Create {
             output,

@@ -109,6 +109,25 @@ jobs:
             target/release/ext4-worker-profile.json
             target/release/ext4-worker-licenses/
             artifacts/tools/e2fsprogs/validation-tool-profile.json
+  host-devices:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: sudo apt-get update && sudo apt-get install -y qemu-utils qemu-system-common dosfstools util-linux
+      - run: cargo build --locked --release --workspace --bins --features validation-hooks --example device_validation_probe
+      - name: Unprivileged read-only discovery and RPC protection
+        run: python3 scripts/devices_validate.py --directory artifacts/devices-enumeration --output artifacts/devices-enumeration-results.json --inventory-only
+      - name: Owned loop exclusivity, consent and fault recovery
+        run: sudo python3 scripts/devices_validate.py --directory /tmp/xetch-disposable-devices-ci --output "$PWD/artifacts/devices-linux-results.json"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: host-device-linux-results
+          path: artifacts/devices-*-results.json
   windows-images:
     needs: disk-images
     runs-on: windows-latest
@@ -180,6 +199,12 @@ jobs:
           python scripts/package_validate.py --package dist/xetch-windows-x64 --gui-test-build target/gui/windows-smoke --directory artifacts/windows/package-validation --output artifacts/windows/package-results.json
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           Copy-Item artifacts/windows/package-validation/launcher-results.json artifacts/windows/launcher-results.json
+      - name: Native device discovery, owned VHD recovery and confirmation dialog
+        shell: pwsh
+        run: |
+          cargo build --locked --release -p xetch-core --features validation-hooks --example device_validation_probe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          ./scripts/windows_devices_validate.ps1 -Binary target/release/xetch.exe -Probe target/release/examples/device_validation_probe.exe -Gui target/gui/windows-smoke/xEtch.Windows.exe -Directory artifacts/windows/devices-validation -Output artifacts/windows/devices-results.json
       - name: Reproduce NTFS candidate write gate on a disposable copy
         shell: pwsh
         run: |
@@ -192,7 +217,9 @@ jobs:
         if: always()
         with:
           name: windows-validation-results
-          path: artifacts/windows/*results.json
+          path: |
+            artifacts/windows/*results.json
+            artifacts/windows/devices-results.gui.json
       - uses: actions/upload-artifact@v4
         with:
           name: windows-filesystem-exports

@@ -1,0 +1,1463 @@
+{
+  "schema_version": 1,
+  "platform": "native Windows x64",
+  "host": "Windows-11-10.0.26200-SP0",
+  "backend_sha256": "fcf9cac4742bcbb563083db8ec2df273e0c75ecd19e2ddc082b41b536b2470c8",
+  "limits": [
+    "No real physical disk writes; only newly factory-created 128 MiB loop/VHD images.",
+    "Injected returned failures and killed helper processes do not emulate actual hardware power loss.",
+    "Recovery journals are on the host filesystem, outside the virtual disk; different real physical failure domains are not verified.",
+    "Physical device editing remains disabled in the production backend.",
+    "GUI controller tests do not substitute for keyboard, picker and accessibility acceptance.",
+    "The 28 backend cases passed in the full run. After fixing dialog text-event timing, only the GUI case was rerun; both cohorts have exactly matching Rust validation sources and probe SHA-256. Case selection is explicitly recorded by the rerun."
+  ],
+  "inventory": {
+    "status": "pass",
+    "devices": 9,
+    "hard_protected": 7,
+    "roles": [
+      "boot",
+      "complex_storage",
+      "crash_dump",
+      "efi",
+      "hibernation",
+      "pagefile",
+      "recovery",
+      "reserved",
+      "runtime",
+      "system",
+      "workspace"
+    ],
+    "warnings": [
+      "Filesystem encryption/clean state and exclusive access are not established by read-only discovery."
+    ],
+    "checks": [
+      "live_native_inventory_without_qemu",
+      "current_system_backing_protected",
+      "all_physical_writes_disabled",
+      "inspect_uses_current_id",
+      "forged_rpc_and_force_rejected",
+      "validation_api_not_exposed"
+    ]
+  },
+  "probe_sha256": "789641e8fbee3329eb1bc883d902efcc393ad9fd6b35e05ac769206687f30ef7",
+  "source_inputs": [
+    {
+      "path": "crates/xetch-core/src/devices/linux.rs",
+      "sha256": "d58816e32496907332cf871d7befbdfc227acf904d4e1426e3ec68334ddfde1a"
+    },
+    {
+      "path": "crates/xetch-core/src/devices/mod.rs",
+      "sha256": "f4cd4f478f5b7319aeb80f9a587ab5ac838a9d528c0e3e8544ab266ac45b08cd"
+    },
+    {
+      "path": "crates/xetch-core/src/devices/process.rs",
+      "sha256": "2c3b22ad0de0d1296753ab51c25ac043b3b269d16057be9278ed4dfd8a2a93ff"
+    },
+    {
+      "path": "crates/xetch-core/src/devices/windows.rs",
+      "sha256": "f3f59fc7d88cade7391cdd681f9d91f478011ec7af8fb18341bc9352e7566825"
+    },
+    {
+      "path": "crates/xetch-core/src/devices/windows_inventory.ps1",
+      "sha256": "1b564445f4b24963690e1caa448ebc6d9554d8ab552b5091e9fe71a9a68f13cc"
+    },
+    {
+      "path": "crates/xetch-core/src/device_validation/linux.rs",
+      "sha256": "02c2679af5d9110764faaae2e9f9889de9dd52f3985689f347edb29d1c50fdd7"
+    },
+    {
+      "path": "crates/xetch-core/src/device_validation/mod.rs",
+      "sha256": "caf68c4831aebf678e2529d4fbc41a76c7af446683a21e6b51fd2338afa5d27e"
+    },
+    {
+      "path": "crates/xetch-core/src/device_validation/windows.rs",
+      "sha256": "b58b687a7f5b9e1b84049809c54ebd88b67048d8fe9a95310196bb7efd4b346e"
+    },
+    {
+      "path": "crates/xetch-core/examples/device_validation_probe.rs",
+      "sha256": "34700ff019feed59b0ca52655c85952068ccdcbf386ae2225fcea854067681be"
+    },
+    {
+      "path": "scripts/devices_validate.py",
+      "sha256": "20c6686cfe7de72dd9b682579b76a4dd6a05fcf0c5d2f8dc14a02c26c513ca84"
+    },
+    {
+      "path": "scripts/windows_device_fixture.ps1",
+      "sha256": "5a6a556fe6dfd46ffcbee398bd95d2780b476c79b8d83a31a9a3f3b44cf6b19a"
+    }
+  ],
+  "cleanup": {
+    "active_owned_devices": 0
+  },
+  "status": "pass",
+  "suite": "host-device-discovery-and-owned-vhd-validation",
+  "cases": [
+    {
+      "case": "consent-and-native-driver",
+      "status": "pass",
+      "checks": [
+        "zero_writes_before_consent",
+        "empty_wrong_and_forced_confirmation_rejected",
+        "cancel_invalidates_authorization",
+        "replacement_plan_invalidates_nonce",
+        "captured_plan_immutable",
+        "one_use_authorization",
+        "full_partition_hash_matches",
+        "native_driver_read_and_feedback",
+        "independent_filesystem_check",
+        "backend_reads_driver_feedback"
+      ],
+      "evidence": {
+        "fixture_token": "4fcf11a6-6396-421a-96a2-72b20f4d85ac",
+        "partition_offset": 1048576,
+        "partition_size": 133169152,
+        "old_partition_sha256": "30f9d990f13b323cd1008f13a293eb838fafbdbec964a754f82cd936cf78a8e8",
+        "planned_partition_sha256": "42c3f479023926ae597db8417c4b6e52f8e22350d18d9dd6c4c5493b77289c5b",
+        "source_image": "baseline.img",
+        "original_source_sha256": "4765be9b929f1eb6fbc311676d4736ec054f23f39b9363d4a3e4f15a7351646c",
+        "factory_seed_sha256": "4c0ddcb4029f3af449deab714749c397c898a93515d64d024c54c67bfc24f3aa",
+        "payload_sha256": "875abea4eaea280c5ea03fec730ad51738cbbe630708304689cb548f48075f78",
+        "last_verified_state": {
+          "editing_blocked": false,
+          "exclusive": true,
+          "fixture_token": "4fcf11a6-6396-421a-96a2-72b20f4d85ac",
+          "lease_id": "f263e04b-85f6-4be3-8cba-5f65b5406e0a",
+          "partition_offset": 1048576,
+          "partition_sha256": "42c3f479023926ae597db8417c4b6e52f8e22350d18d9dd6c4c5493b77289c5b",
+          "partition_size": 133169152,
+          "pending_recovery": [],
+          "recovery_error": null,
+          "target_id": "6bc2feefaad80acfb3e3f96caccaf11f8d0cfc5609038b591a322e982cf63ca0",
+          "target_write_calls": 20,
+          "test_only": true
+        },
+        "journals": [
+          {
+            "sha256": "53368382f26239d965dd73e1bdda09814718126cb734545bd15761c98e646d09",
+            "committed": true,
+            "rolled_back": false
+          }
+        ]
+      },
+      "seconds": 20.281,
+      "fixture_detached": true
+    },
+    {
+      "case": "exclusive-native-access",
+      "status": "pass",
+      "checks": [
+        "busy_native_filesystem_refuses_lease",
+        "second_exclusive_claim_refused",
+        "lease_can_be_reacquired_after_close"
+      ],
+      "evidence": {
+        "fixture_token": "eba1cfbf-3e62-438a-a941-478d88aef24a",
+        "partition_offset": 1048576,
+        "partition_size": 133169152,
+        "old_partition_sha256": "3e6d2a27dc35fafb23589d2deccd856c42f2b7ea844cd732675446540ca0018e",
+        "planned_partition_sha256": "a53e5e99cfbea17ee0d9d5c5bedd803fdeb06d775ffc986bb3408302937c1445",
+        "source_image": "baseline.img",
+        "original_source_sha256": "4a225c3046e6c52d20624cf2d4e145a07cc02044682c1306f33f587c4a8ac07c",
+        "factory_seed_sha256": "f72e4e6e41d9d83e256038780645b6129597bbc9c9b71013a4df8501f1231cdb",
+        "payload_sha256": "875abea4eaea280c5ea03fec730ad51738cbbe630708304689cb548f48075f78",
+        "last_verified_state": null,
+        "journals": []
+      },
+      "seconds": 7.266,
+      "fixture_detached": true
+    },
+    {
+      "case": "expired-consent",
+      "status": "pass",
+      "checks": [
+        "confirmation_expires_before_commit",
+        "expired_plan_zero_writes"
+      ],
+      "evidence": {
+        "fixture_token": "c5e07238-06ca-4173-974f-4dd2b9fd2146",
+        "partition_offset": 1048576,
+        "partition_size": 133169152,
+        "old_partition_sha256": "e62433ff9bbadbbe1f93c0a743c597a8404eaecfb0b2ac2fdffa7436002d4d8c",
+        "planned_partition_sha256": "b56f8eee3a143845c146d91ca9494bb41797770e66b2255d7e689e65f77abaa8",
+        "source_image": "baseline.img",
+        "original_source_sha256": "e604b10e5c24d3245dea859e4a33a0f1659016cd39393d1f42155aefc15a103e",
+        "factory_seed_sha256": "c2b8c706d2d6835a5b55b0128aac1a600f1f480d4576e7b8ebb95d6a54e77538",
+        "payload_sha256": "875abea4eaea280c5ea03fec730ad51738cbbe630708304689cb548f48075f78",
+        "last_verified_state": {
+          "editing_blocked": false,
+          "exclusive": true,
+          "fixture_token": "c5e07238-06ca-4173-974f-4dd2b9fd2146",
+          "lease_id": "afdfd92e-8fe3-4e3f-b66e-a3c782da54ae",
+          "partition_offset": 1048576,
+          "partition_sha256": "e62433ff9bbadbbe1f93c0a743c597a8404eaecfb0b2ac2fdffa7436002d4d8c",
+          "partition_size": 133169152,
+          "pending_recovery": [],
+          "recovery_error": null,
+          "target_id": "2acc458b2e35a1b19b2e1fcadf39dd44ef44979b2a4cd1bf0d013258f0c7d574",
+          "target_write_calls": 0,
+          "test_only": true
+        },
+        "journals": []
+      },
+      "seconds": 11.015,
+      "fixture_detached": true
+    },
+    {
+      "case": "changed-device-identity",
+      "status": "pass",
+      "checks": [
+        "identity_change_revokes_consent",
+        "failed_identity_check_burns_nonce",
+        "target_unchanged"
+      ],
+      "evidence": {
+        "fixture_token": "2f4755b2-fda9-4733-90c9-e333b838c110",
+        "partition_offset": 1048576,
+        "partition_size": 133169152,
+        "old_partition_sha256": "983590b9a5fcce19218b29099e78f514df9953dc0856f3018e2bcfbd951ca8fa",
+        "planned_partition_sha256": "67479d0231ade7334710f84d6b7c41c612c14a843bd420eeb1e09dd7e5fdfd95",
+        "source_image": "baseline.img",
+        "original_source_sha256": "0d9c38c3a55c35fb312dcb05d2c906c226c91aecda01fb0d8699e4acd8118023",
+        "factory_seed_sha256": "efc44f1acd2e8da857fa270b9145febf9595998ad7c953fa701fa4d795542d76",
+        "payload_sha256": "875abea4eaea280c5ea03fec730ad51738cbbe630708304689cb548f48075f78",
+        "last_verified_state": {
+          "editing_blocked": false,
+          "exclusive": true,
+          "fixture_token": "2f4755b2-fda9-4733-90c9-e333b838c110",
+          "lease_id": "2fdf9b09-60e2-4e2d-ac1c-52d8508f7cc2",
+          "partition_offset": 1048576,
+          "partition_sha256": "983590b9a5fcce19218b29099e78f514df9953dc0856f3018e2bcfbd951ca8fa",
+          "partition_size": 133169152,
+          "pending_recovery": [],
+          "recovery_error": null,
+          "target_id": "57a7cebc5484dee950b2460f45dda9aa85dcfc9a55b8c0b32d903fc510f12bd8",
+          "target_write_calls": 0,
+          "test_only": true
+        },
+        "journals": []
+      },
+      "seconds": 11.094,
+      "fixture_detached": true
+    },
+    {
+      "case": "frontend-disconnect",
+      "status": "pass",
+      "checks": [
+        "frontend_eof_during_commit",
+        "helper_keeps_lease_until_terminal_state",
+        "committed_full_hash_after_reopen"
+      ],
+      "evidence": {
+        "fixture_token": "59010ff3-feca-4f63-ab9d-45f9d43c12cf",
+        "partition_offset": 1048576,
+        "partition_size": 133169152,
+        "old_partition_sha256": "5e3f8d60c3b61f728503dbb8e0b38f23d38d80c986d27f63ff1cc1e8448257a6",
+        "planned_partition_sha256": "6b745d7a6d3021f7afad46d8ea1d72dca7f2bb1ae7fd7953e70eac066b8bcb1f",
+        "source_image": "baseline.img",
+        "original_source_sha256": "ec98a17bac7ac758d211f351debef881efe060b5e65f988670e80e391b11f393",
+        "factory_seed_sha256": "d60ed9ca6a8dd771dd88f3c2468a2ab79325e07605e94c87b805a6cdc2b0aa4b",
+        "payload_sha256": "875abea4eaea280c5ea03fec730ad51738cbbe630708304689cb548f48075f78",
+        "last_verified_state": {
+          "editing_blocked": false,
+          "exclusive": true,
+          "fixture_token": "59010ff3-feca-4f63-ab9d-45f9d43c12cf",
+          "lease_id": "32bc1077-cf98-4227-b481-62b4fbb72cda",
+          "partition_offset": 1048576,
+          "partition_sha256": "6b745d7a6d3021f7afad46d8ea1d72dca7f2bb1ae7fd7953e70eac066b8bcb1f",
+          "partition_size": 133169152,
+          "pending_recovery": [],
+          "recovery_error": null,
+          "target_id": "7839f5c534f207287bee52e9ac78c346b1ec2beb6a94e6b90e8298e163264723",
+          "target_write_calls": 0,
+          "test_only": true
+        },
+        "journals": [
+          {
+            "sha256": "5756927e0c437eaa6bdee77a06c3d9a26d8337cd4ccfc2959a63e45336863630",
+            "committed": true,
+            "rolled_back": false
+          }
+        ]
+      },
+      "seconds": 12.344,
+      "fixture_detached": true
+    },
+    {
+      "case": "error-device-journal_durable",
+      "status": "pass",
+      "checks": [
+        "returned_error_at_device.journal_durable",
+        "automatic_verified_rollback_or_commit_uncertain",
+        "full_partition_hash"
+      ],
+      "evidence": {
+        "fixture_token": "2c4d45b8-5f9e-40aa-8b2d-42da95335fd7",
+        "partition_offset": 1048576,
+        "partition_size": 133169152,
+        "old_partition_sha256": "7f39b4cdbab74883ce315740f836f82df2a1b36a1de1d9437c1ce42056612001",
+        "planned_partition_sha256": "39986c43f1951c351e0070321c9acf343f67b8b1f2d574f7fad34f0e1f18a63b",
+        "source_image": "baseline.img",
+        "original_source_sha256": "aacb01ba33094aa0c7aa129ff4427b1e4dfc32717d46db84b54dbacb7826a50a",
+        "factory_seed_sha256": "b782512580c21db13dd8802dfa94692c80c45cbeddeba2e7b87e21929744f76b",
+        "payload_sha256": "875abea4eaea280c5ea03fec730ad51738cbbe630708304689cb548f48075f78",
+        "last_verified_state": {
+          "editing_blocked": false,
+          "exclusive": true,
+          "fixture_token": "2c4d45b8-5f9e-40aa-8b2d-42da95335fd7",
+          "lease_id": "c6442994-778a-4863-a178-6fd377ad2016",
+          "partition_offset": 1048576,
+          "partition_sha256": "7f39b4cdbab74883ce315740f836f82df2a1b36a1de1d9437c1ce42056612001",
+          "partition_size": 133169152,
+          "pending_recovery": [],
+          "recovery_error": null,
+          "target_id": "7adfc62161d2d2ee5c3f76321fc8c11e0c14659690a8eccfa53049f2ae1c7f66",
+          "target_write_calls": 0,
+          "test_only": true
+        },
+        "journals": [
+          {
+            "sha256": "bb3c05e0da281ca202b1a4277e278e08df18919a0fe399ea01e05fd486731263",
+            "committed": false,
+            "rolled_back": true
+          }
+        ]
+      },
+      "seconds": 11.047,
+      "fixture_detached": true
+    },
+    {
+      "case": "error-device-before_write",
+      "status": "pass",
+      "checks": [
+        "returned_error_at_device.before_write",
+        "automatic_verified_rollback_or_commit_uncertain",
+        "full_partition_hash"
+      ],
+      "evidence": {
+        "fixture_token": "b54cb828-3733-4742-90ff-8fa0c73f5c52",
+        "partition_offset": 1048576,
+        "partition_size": 133169152,
+        "old_partition_sha256": "058ebc8b0a31f5abc25bb3b592de4122843afa02b963226a5697c9f34a72c564",
+        "planned_partition_sha256": "d3d493c91092538452db9fdeaa13377f150ef8f5ac9b881d5ebc4161a747d110",
+        "source_image": "baseline.img",
+        "original_source_sha256": "dc52718184e5c408e240a8db02dca0a268c6f276cbe592999dd266a8fb6765ba",
+        "factory_seed_sha256": "2540bc6de90188b35879e028cb32391213e430916795b9029d9ba5070d59c5d9",
+        "payload_sha256": "875abea4eaea280c5ea03fec730ad51738cbbe630708304689cb548f48075f78",
+        "last_verified_state": {
+          "editing_blocked": false,
+          "exclusive": true,
+          "fixture_token": "b54cb828-3733-4742-90ff-8fa0c73f5c52",
+          "lease_id": "d10910cb-4f74-4417-b257-b07460ee4e9b",
+          "partition_offset": 1048576,
+          "partition_sha256": "058ebc8b0a31f5abc25bb3b592de4122843afa02b963226a5697c9f34a72c564",
+          "partition_size": 133169152,
+          "pending_recovery": [],
+          "recovery_error": null,
+          "target_id": "4de79032db0ea76287fced970a5b2c91e913c89e5a3522e69fe501fa08e7804f",
+          "target_write_calls": 0,
+          "test_only": true
+        },
+        "journals": [
+          {
+            "sha256": "0fcf661be840560c6da8a4fcda1d314d2be14fb879de2aa51d21140eec431e67",
+            "committed": false,
+            "rolled_back": true
+          }
+        ]
+      },
+      "seconds": 10.094,
+      "fixture_detached": true
+    },
+    {
+      "case": "error-device-wrote_block",
+      "status": "pass",
+      "checks": [
+        "returned_error_at_device.wrote_block",
+        "automatic_verified_rollback_or_commit_uncertain",
+        "full_partition_hash"
+      ],
+      "evidence": {
+        "fixture_token": "bd00c116-7ac7-455b-aa38-b2d4f0b7d441",
+        "partition_offset": 1048576,
+        "partition_size": 133169152,
+        "old_partition_sha256": "6b88035d49965f6f36b5258ec679372fd095389b616d74a01fd5fb733738bed4",
+        "planned_partition_sha256": "a0c0b6be3ede762795d7f962ac08f0a7000dfb110c069cd2a441b9f49e2847ae",
+        "source_image": "baseline.img",
+        "original_source_sha256": "6a4f0b7b08f179d4b5e859970d9c3a54086d3f715c89d5c071fc04fafca5d943",
+        "factory_seed_sha256": "a061b189b8ec16b83d1e958a0614d13f368d0b917656c705449e4cc622c9eb29",
+        "payload_sha256": "875abea4eaea280c5ea03fec730ad51738cbbe630708304689cb548f48075f78",
+        "last_verified_state": {
+          "editing_blocked": false,
+          "exclusive": true,
+          "fixture_token": "bd00c116-7ac7-455b-aa38-b2d4f0b7d441",
+          "lease_id": "1b3530a1-4f05-41d5-aade-5456a0b0ab8f",
+          "partition_offset": 1048576,
+          "partition_sha256": "6b88035d49965f6f36b5258ec679372fd095389b616d74a01fd5fb733738bed4",
+          "partition_size": 133169152,
+          "pending_recovery": [],
+          "recovery_error": null,
+          "target_id": "a5b1362f18be4162bcfb5c61b8f55c3cecde873ecd0d9e30ec3ff2875d4c70f3",
+          "target_write_calls": 2,
+          "test_only": true
+        },
+        "journals": [
+          {
+            "sha256": "9d0d554d62a125c7b58e9dfaa6fcee98c49745fdc339416d25bd81b1e8571401",
+            "committed": false,
+            "rolled_back": true
+          }
+        ]
+      },
+      "seconds": 11.875,
+      "fixture_detached": true
+    },
+    {
+      "case": "error-device-before_write-2",
+      "status": "pass",
+      "checks": [
+        "returned_error_at_device.before_write.2",
+        "automatic_verified_rollback_or_commit_uncertain",
+        "full_partition_hash"
+      ],
+      "evidence": {
+        "fixture_token": "d320c0c5-69b3-4c30-be9c-786cb72d44d9",
+        "partition_offset": 1048576,
+        "partition_size": 133169152,
+        "old_partition_sha256": "2b75ab91d11ac9a1d89f5ec434edd2565953c5e4c2c69d8de54b6311c08dd192",
+        "planned_partition_sha256": "850af64f7fbc5fee5b9f3f8eda03875f91ff0fe9cbf1607996ba1dce79ae062a",
+        "source_image": "baseline.img",
+        "original_source_sha256": "31577c9f11baee134602f4b2b31cc990f6cd1d77ddea0084e9b49ae2cf9a4462",
+        "factory_seed_sha256": "6a36b6e6bf7861d4ebf8d0ca61888d382baa202c1e1711e58c25d90ad5a7c6fa",
+        "payload_sha256": "875abea4eaea280c5ea03fec730ad51738cbbe630708304689cb548f48075f78",
+        "last_verified_state": {
+          "editing_blocked": false,
+          "exclusive": true,
+          "fixture_token": "d320c0c5-69b3-4c30-be9c-786cb72d44d9",
+          "lease_id": "c93e92e4-f3ee-4c97-bf2e-1f7480ca649b",
+          "partition_offset": 1048576,
+          "partition_sha256": "2b75ab91d11ac9a1d89f5ec434edd2565953c5e4c2c69d8de54b6311c08dd192",
+          "partition_size": 133169152,
+          "pending_recovery": [],
+          "recovery_error": null,
+          "target_id": "bf1ef4763d21050f755593d04adf4f4d8b39876a20d350201493c578b9880ee8",
+          "target_write_calls": 2,
+          "test_only": true
+        },
+        "journals": [
+          {
+            "sha256": "603847dd5364dacd60d40c706cfb070afbf2830a7e05793f4c3b8f3fe1991ca4",
+            "committed": false,
+            "rolled_back": true
+          }
+        ]
+      },
+      "seconds": 15.093,
+      "fixture_detached": true
+    },
+    {
+      "case": "error-device-wrote_block-2",
+      "status": "pass",
+      "checks": [
+        "returned_error_at_device.wrote_block.2",
+        "automatic_verified_rollback_or_commit_uncertain",
+        "full_partition_hash"
+      ],
+      "evidence": {
+        "fixture_token": "9617f76a-7e6d-410a-b436-4fe8c1daa3db",
+        "partition_offset": 1048576,
+        "partition_size": 133169152,
+        "old_partition_sha256": "65f9f20b5b58a1ed2167ffa955debf4e2455f86bb62070d06efdd1114fe6bf50",
+        "planned_partition_sha256": "f11c6632c1764b15b16dc0046b5d2891b8ee065d3e0a13ff4bc57afd1e10247d",
+        "source_image": "baseline.img",
+        "original_source_sha256": "6226e7ee330a9dcdf1a000962f609c128a4ec6971e51ce5f75583cde08fa24af",
+        "factory_seed_sha256": "4c24675dd7f043bf60591f387e99e09112824f6097ccd02e401b0d500800f307",
+        "payload_sha256": "875abea4eaea280c5ea03fec730ad51738cbbe630708304689cb548f48075f78",
+        "last_verified_state": {
+          "editing_blocked": false,
+          "exclusive": true,
+          "fixture_token": "9617f76a-7e6d-410a-b436-4fe8c1daa3db",
+          "lease_id": "b79767c0-7d62-489e-8770-bf193caab5e3",
+          "partition_offset": 1048576,
+          "partition_sha256": "65f9f20b5b58a1ed2167ffa955debf4e2455f86bb62070d06efdd1114fe6bf50",
+          "partition_size": 133169152,
+          "pending_recovery": [],
+          "recovery_error": null,
+          "target_id": "75f53ee1322728e0068099749483866044e626f08791386858321bb824812717",
+          "target_write_calls": 4,
+          "test_only": true
+        },
+        "journals": [
+          {
+            "sha256": "8a0aef286667cfd78a039514afdcef0dd22c70397c28ce66d3277c61307d5bdd",
+            "committed": false,
+            "rolled_back": true
+          }
+        ]
+      },
+      "seconds": 13.657,
+      "fixture_detached": true
+    },
+    {
+      "case": "error-device-target_synced",
+      "status": "pass",
+      "checks": [
+        "returned_error_at_device.target_synced",
+        "automatic_verified_rollback_or_commit_uncertain",
+        "full_partition_hash"
+      ],
+      "evidence": {
+        "fixture_token": "4b3ec919-9cbf-4fe2-8ef6-e0ecb821b106",
+        "partition_offset": 1048576,
+        "partition_size": 133169152,
+        "old_partition_sha256": "dfc9c1bff5f2c7dd4a4eed634a50496305c41614bd215f2d6ab01685c3822405",
+        "planned_partition_sha256": "7ea294fa5d794620f0b2be721cf92c51798fd006d47c7d328a422b3db14a1ad1",
+        "source_image": "baseline.img",
+        "original_source_sha256": "26392f42d7078dd7bbac2dafa71f08858762fffef787cffdad60ec4a73f21d3b",
+        "factory_seed_sha256": "6ef6e92d403367e0c7715a4448035286d774c8c1124142c15b213ee1f2e2a8f6",
+        "payload_sha256": "875abea4eaea280c5ea03fec730ad51738cbbe630708304689cb548f48075f78",
+        "last_verified_state": {
+          "editing_blocked": false,
+          "exclusive": true,
+          "fixture_token": "4b3ec919-9cbf-4fe2-8ef6-e0ecb821b106",
+          "lease_id": "6f96840a-85eb-41a2-a9d0-bc71b9266b62",
+          "partition_offset": 1048576,
+          "partition_sha256": "dfc9c1bff5f2c7dd4a4eed634a50496305c41614bd215f2d6ab01685c3822405",
+          "partition_size": 133169152,
+          "pending_recovery": [],
+          "recovery_error": null,
+          "target_id": "072f7f8f203b6fce5fe944e4f1e217c31f0566c113f34753c1aa89eb2a0150d1",
+          "target_write_calls": 40,
+          "test_only": true
+        },
+        "journals": [
+          {
+            "sha256": "efd45097a5550ff1b8eb2d178f7972f0d3e17056b15d37952f6c6d86dfb022f5",
+            "committed": false,
+            "rolled_back": true
+          }
+        ]
+      },
+      "seconds": 14.171,
+      "fixture_detached": true
+    },
+    {
+      "case": "error-device-commit_recorded",
+      "status": "pass",
+      "checks": [
+        "returned_error_at_device.commit_recorded",
+        "automatic_verified_rollback_or_commit_uncertain",
+        "full_partition_hash"
+      ],
+      "evidence": {
+        "fixture_token": "173ea9cf-5fa9-4707-a8fe-caaf46a4a4f7",
+        "partition_offset": 1048576,
+        "partition_size": 133169152,
+        "old_partition_sha256": "9b6c1abdd239085e2cc3a4aa04bfd3c1c106b4fc22ca648225ceba2b63c97b61",
+        "planned_partition_sha256": "03af810daf4306b7db499cc854590014b1b3630ab5234d8b18dd431ad6dfcb63",
+        "source_image": "baseline.img",
+        "original_source_sha256": "5af5986bb22a335d02b5671d986d61fce50e391b52569222423f9cba9659b955",
+        "factory_seed_sha256": "3b52082833fb62ad8b774dd1b4ffb9fc853fa784ffe33450bef9b5d60bec7d11",
+        "payload_sha256": "875abea4eaea280c5ea03fec730ad51738cbbe630708304689cb548f48075f78",
+        "last_verified_state": {
+          "editing_blocked": false,
+          "exclusive": true,
+          "fixture_token": "173ea9cf-5fa9-4707-a8fe-caaf46a4a4f7",
+          "lease_id": "218f63cf-991f-4234-a725-b78470c55ca6",
+          "partition_offset": 1048576,
+          "partition_sha256": "03af810daf4306b7db499cc854590014b1b3630ab5234d8b18dd431ad6dfcb63",
+          "partition_size": 133169152,
+          "pending_recovery": [],
+          "recovery_error": null,
+          "target_id": "e1e4cdd8b6925364d12e9e38540205afdf3bf9ef023b892ef1929fade2cd8c5c",
+          "target_write_calls": 20,
+          "test_only": true
+        },
+        "journals": [
+          {
+            "sha256": "484472bcdc49ec7eafa7afcdcc1ff675e1ceb55e745715b6865530f54ca6f405",
+            "committed": true,
+            "rolled_back": false
+          }
+        ]
+      },
+      "seconds": 14.204,
+      "fixture_detached": true
+    },
+    {
+      "case": "kill-device-journal_durable",
+      "status": "pass",
+      "checks": [
+        "actual_helper_process_killed_at_device.journal_durable",
+        "new_session_scans_durable_journal",
+        "unfinished_edits_blocked",
+        "explicit_recovery_to_old_or_recorded_commit_to_new",
+        "full_partition_hash"
+      ],
+      "evidence": {
+        "fixture_token": "9dec4240-f0d4-45a7-8725-87ae24ad3158",
+        "partition_offset": 1048576,
+        "partition_size": 133169152,
+        "old_partition_sha256": "ebb1f10188e6009909927f46b8fa4a60671fe37bfa43c0c78159a08deb9b440d",
+        "planned_partition_sha256": "6f6c55438b97035b70715745d9c58cc3ecbc54a52646233914218e5c58e5b7d4",
+        "source_image": "baseline.img",
+        "original_source_sha256": "7448c3a7dd197c65fd07020e2e3dabb3a59ed654800a3d66b4c4ea0acd145fa7",
+        "factory_seed_sha256": "0c99b7758eed0b6216714627f75d3b79e6e6a9e1cbccf73dae75d950522cc6c7",
+        "payload_sha256": "875abea4eaea280c5ea03fec730ad51738cbbe630708304689cb548f48075f78",
+        "last_verified_state": {
+          "editing_blocked": false,
+          "exclusive": true,
+          "fixture_token": "9dec4240-f0d4-45a7-8725-87ae24ad3158",
+          "lease_id": "b53d4914-1186-4412-a4df-847e1298a080",
+          "partition_offset": 1048576,
+          "partition_sha256": "ebb1f10188e6009909927f46b8fa4a60671fe37bfa43c0c78159a08deb9b440d",
+          "partition_size": 133169152,
+          "pending_recovery": [],
+          "recovery_error": null,
+          "target_id": "15f861a3faa98c8832cc8e15bc3621f78d249ad69f4be0b4f457393f32bb5c70",
+          "target_write_calls": 0,
+          "test_only": true
+        },
+        "journals": [
+          {
+            "sha256": "06351d038c0845f06dc49bf823390dd591583d884dd57645cdb078bd477b40d1",
+            "committed": false,
+            "rolled_back": true
+          }
+        ]
+      },
+      "seconds": 14.218,
+      "fixture_detached": true
+    },
+    {
+      "case": "kill-device-before_write",
+      "status": "pass",
+      "checks": [
+        "actual_helper_process_killed_at_device.before_write",
+        "new_session_scans_durable_journal",
+        "unfinished_edits_blocked",
+        "explicit_recovery_to_old_or_recorded_commit_to_new",
+        "full_partition_hash"
+      ],
+      "evidence": {
+        "fixture_token": "971b0b78-fca4-4ded-99e9-34392f0d178a",
+        "partition_offset": 1048576,
+        "partition_size": 133169152,
+        "old_partition_sha256": "efb6891f31cb15cdfb1094edc8b953a23681e9cc9f3c49adc753f703c4779ee9",
+        "planned_partition_sha256": "f4725bcb75a77964ec14a8e3c01f2a492a1dc1d070765161c10ba625455d416b",
+        "source_image": "baseline.img",
+        "original_source_sha256": "2ca8e10ef335ac44e9efa879117ad339697c3a157eb7e37590fc8add7c82ea5a",
+        "factory_seed_sha256": "e569bc0a0d9d9a75565e04c70bdd4f14c40f698241ffdee4692bd114c89d8ab0",
+        "payload_sha256": "875abea4eaea280c5ea03fec730ad51738cbbe630708304689cb548f48075f78",
+        "last_verified_state": {
+          "editing_blocked": false,
+          "exclusive": true,
+          "fixture_token": "971b0b78-fca4-4ded-99e9-34392f0d178a",
+          "lease_id": "e40484bc-dc86-4dee-9ae2-011df2e1bf65",
+          "partition_offset": 1048576,
+          "partition_sha256": "efb6891f31cb15cdfb1094edc8b953a23681e9cc9f3c49adc753f703c4779ee9",
+          "partition_size": 133169152,
+          "pending_recovery": [],
+          "recovery_error": null,
+          "target_id": "cb02a5e3c03c2f921ebec77512145fdb89f17feacbd97651de8a5d667a36cfe8",
+          "target_write_calls": 0,
+          "test_only": true
+        },
+        "journals": [
+          {
+            "sha256": "d6cf024632366255c46e403c846fe20496c1317a38cbc6dcca403c009564a7e2",
+            "committed": false,
+            "rolled_back": true
+          }
+        ]
+      },
+      "seconds": 11.844,
+      "fixture_detached": true
+    },
+    {
+      "case": "kill-device-wrote_block",
+      "status": "pass",
+      "checks": [
+        "actual_helper_process_killed_at_device.wrote_block",
+        "new_session_scans_durable_journal",
+        "unfinished_edits_blocked",
+        "explicit_recovery_to_old_or_recorded_commit_to_new",
+        "full_partition_hash"
+      ],
+      "evidence": {
+        "fixture_token": "219ea5f8-5db5-4c2f-8c62-9c5033658868",
+        "partition_offset": 1048576,
+        "partition_size": 133169152,
+        "old_partition_sha256": "f4d84ace8ea4663c88322ebb548b43d313c6b0c4c53c77477d33bad4862c06de",
+        "planned_partition_sha256": "655762c8ef6a82f4e47bf689f7ca57e1ca073b21a8270bf10c5f26c652813ae8",
+        "source_image": "baseline.img",
+        "original_source_sha256": "0622e42bf98300ddefd70f0af953c52fd830ff3d621db18165eb785bf9b215dc",
+        "factory_seed_sha256": "2d484e33e8f166f34262a9d6f0cd74904fc75156f9f79133a18b22ebb974751d",
+        "payload_sha256": "875abea4eaea280c5ea03fec730ad51738cbbe630708304689cb548f48075f78",
+        "last_verified_state": {
+          "editing_blocked": false,
+          "exclusive": true,
+          "fixture_token": "219ea5f8-5db5-4c2f-8c62-9c5033658868",
+          "lease_id": "5da15b8d-45d0-4077-8f3d-3c42185e6f5e",
+          "partition_offset": 1048576,
+          "partition_sha256": "f4d84ace8ea4663c88322ebb548b43d313c6b0c4c53c77477d33bad4862c06de",
+          "partition_size": 133169152,
+          "pending_recovery": [],
+          "recovery_error": null,
+          "target_id": "9f602bf257d18b737283af8064bee68c315750f14341d9f8a36b1eadd6a7640c",
+          "target_write_calls": 1,
+          "test_only": true
+        },
+        "journals": [
+          {
+            "sha256": "93732a4b6d557b1750ee9719cb7e3f19066aaaf92f4e46968165e01d9b74cc7a",
+            "committed": false,
+            "rolled_back": true
+          }
+        ]
+      },
+      "seconds": 14.203,
+      "fixture_detached": true
+    },
+    {
+      "case": "kill-device-before_write-2",
+      "status": "pass",
+      "checks": [
+        "actual_helper_process_killed_at_device.before_write.2",
+        "new_session_scans_durable_journal",
+        "unfinished_edits_blocked",
+        "explicit_recovery_to_old_or_recorded_commit_to_new",
+        "full_partition_hash"
+      ],
+      "evidence": {
+        "fixture_token": "797143de-b5ce-436d-b78c-ddeb003b36b0",
+        "partition_offset": 1048576,
+        "partition_size": 133169152,
+        "old_partition_sha256": "ff906266b9872d73aa9fab07d64def67be02fb3313ef68e2deebbd602621ee03",
+        "planned_partition_sha256": "5ae09835d279864fdaa6e18df93fdabc249a2cd93b9e72b75a1bed9dee007a0d",
+        "source_image": "baseline.img",
+        "original_source_sha256": "d3e71758c83fa46a27057627071537faa9b7cfe362f18d58030e5413fa9e5182",
+        "factory_seed_sha256": "39c7763300f402de1861a0b53faa636382cc58754c7608f1bb48a581d7c60994",
+        "payload_sha256": "875abea4eaea280c5ea03fec730ad51738cbbe630708304689cb548f48075f78",
+        "last_verified_state": {
+          "editing_blocked": false,
+          "exclusive": true,
+          "fixture_token": "797143de-b5ce-436d-b78c-ddeb003b36b0",
+          "lease_id": "1d0b5117-e68a-4e0d-a3bb-195d52ee07b4",
+          "partition_offset": 1048576,
+          "partition_sha256": "ff906266b9872d73aa9fab07d64def67be02fb3313ef68e2deebbd602621ee03",
+          "partition_size": 133169152,
+          "pending_recovery": [],
+          "recovery_error": null,
+          "target_id": "4a055b493e5037fb48db0b9dfad75166aaf7b272a0443b60ac6545dd528690f9",
+          "target_write_calls": 1,
+          "test_only": true
+        },
+        "journals": [
+          {
+            "sha256": "4d02630ff23ec7739cf8078c3839f318b3ce71aaa4a78eea27807d1b658dc5a1",
+            "committed": false,
+            "rolled_back": true
+          }
+        ]
+      },
+      "seconds": 10.953,
+      "fixture_detached": true
+    },
+    {
+      "case": "kill-device-wrote_block-2",
+      "status": "pass",
+      "checks": [
+        "actual_helper_process_killed_at_device.wrote_block.2",
+        "new_session_scans_durable_journal",
+        "unfinished_edits_blocked",
+        "explicit_recovery_to_old_or_recorded_commit_to_new",
+        "full_partition_hash"
+      ],
+      "evidence": {
+        "fixture_token": "d2546d09-a737-4c6b-9934-0f270fd6f7af",
+        "partition_offset": 1048576,
+        "partition_size": 133169152,
+        "old_partition_sha256": "f548fe8b2feab19d8dd5a151a03e22817a70e384b0d49eff3b4ee803f095812f",
+        "planned_partition_sha256": "a8bbb57a82b95b13c0ba5dc44fc432ac7b9aac012494567bf8699010725791e9",
+        "source_image": "baseline.img",
+        "original_source_sha256": "f0f8067d987f8b369676a5a70373a98c23f1b0e513e433883e9b061ac8c2757b",
+        "factory_seed_sha256": "5cad2ae624045629ab47f5119ff2c983b5b9c5eec18f1766e562732a22ed53e7",
+        "payload_sha256": "875abea4eaea280c5ea03fec730ad51738cbbe630708304689cb548f48075f78",
+        "last_verified_state": {
+          "editing_blocked": false,
+          "exclusive": true,
+          "fixture_token": "d2546d09-a737-4c6b-9934-0f270fd6f7af",
+          "lease_id": "906663e2-ee97-455f-ad8c-c28974be1fd4",
+          "partition_offset": 1048576,
+          "partition_sha256": "f548fe8b2feab19d8dd5a151a03e22817a70e384b0d49eff3b4ee803f095812f",
+          "partition_size": 133169152,
+          "pending_recovery": [],
+          "recovery_error": null,
+          "target_id": "8dbaa40058c67980ecbbd5e006d9e695722c0e1ce11695e93f98257d11ae3a73",
+          "target_write_calls": 2,
+          "test_only": true
+        },
+        "journals": [
+          {
+            "sha256": "a7e9f70e91e9cd4784cfeae771d8696ef9a8f2fd820c61fae1d2f8f0c4a9dd3c",
+            "committed": false,
+            "rolled_back": true
+          }
+        ]
+      },
+      "seconds": 11.219,
+      "fixture_detached": true
+    },
+    {
+      "case": "kill-device-target_synced",
+      "status": "pass",
+      "checks": [
+        "actual_helper_process_killed_at_device.target_synced",
+        "new_session_scans_durable_journal",
+        "unfinished_edits_blocked",
+        "explicit_recovery_to_old_or_recorded_commit_to_new",
+        "full_partition_hash"
+      ],
+      "evidence": {
+        "fixture_token": "7cb199a7-bd73-4c97-91cb-a4e120301026",
+        "partition_offset": 1048576,
+        "partition_size": 133169152,
+        "old_partition_sha256": "3d8aad8cf22dd5d3ea7edd2ac1d10732d0b8f25162527d50d43e70898db58757",
+        "planned_partition_sha256": "de2977a87ebc8e4e70ebf9ba57b12106269b9a8711838afbdaf1f12634d38224",
+        "source_image": "baseline.img",
+        "original_source_sha256": "c18073e9d645dc08183817f3c1016cb74ce7b668e842c898d5669517afcf086b",
+        "factory_seed_sha256": "87e81fc5988f00640ada10268723b1bb5cef64705f15b2313fd393eb1d6b34df",
+        "payload_sha256": "875abea4eaea280c5ea03fec730ad51738cbbe630708304689cb548f48075f78",
+        "last_verified_state": {
+          "editing_blocked": false,
+          "exclusive": true,
+          "fixture_token": "7cb199a7-bd73-4c97-91cb-a4e120301026",
+          "lease_id": "ef520a0b-213f-4f87-8a4d-c658351371b6",
+          "partition_offset": 1048576,
+          "partition_sha256": "3d8aad8cf22dd5d3ea7edd2ac1d10732d0b8f25162527d50d43e70898db58757",
+          "partition_size": 133169152,
+          "pending_recovery": [],
+          "recovery_error": null,
+          "target_id": "da13eb9c466104452f7a1b20b036e22c91e55939df35c59e8dca2a6115303e60",
+          "target_write_calls": 20,
+          "test_only": true
+        },
+        "journals": [
+          {
+            "sha256": "36000bfacf856fcc430e0292933a7e1e8a3b35279cf9a2466108df7c0a2e07da",
+            "committed": false,
+            "rolled_back": true
+          }
+        ]
+      },
+      "seconds": 12.719,
+      "fixture_detached": true
+    },
+    {
+      "case": "kill-device-commit_recorded",
+      "status": "pass",
+      "checks": [
+        "actual_helper_process_killed_at_device.commit_recorded",
+        "new_session_scans_durable_journal",
+        "unfinished_edits_blocked",
+        "explicit_recovery_to_old_or_recorded_commit_to_new",
+        "full_partition_hash"
+      ],
+      "evidence": {
+        "fixture_token": "10a03ae9-cd9b-4f9b-a630-e848f2a7188a",
+        "partition_offset": 1048576,
+        "partition_size": 133169152,
+        "old_partition_sha256": "14192321253e8a70aa7894f6887d24bd4e027e2e8fa78d834be9ecb0ea7bd87c",
+        "planned_partition_sha256": "e711f1ecc81e1780adbb6939a2c91ea021b35205bc5aa5d5479e52392e8623a6",
+        "source_image": "baseline.img",
+        "original_source_sha256": "16da4f061499c3c99803234739d953fc9568d7910e66a5a7989de990b70e9aee",
+        "factory_seed_sha256": "b825253d47f31516298733cd1101c59efdf8b31326f4e144b5e1e364fc94b46f",
+        "payload_sha256": "875abea4eaea280c5ea03fec730ad51738cbbe630708304689cb548f48075f78",
+        "last_verified_state": {
+          "editing_blocked": false,
+          "exclusive": true,
+          "fixture_token": "10a03ae9-cd9b-4f9b-a630-e848f2a7188a",
+          "lease_id": "b7072421-77a2-4786-8524-ab5f8bb7f2b3",
+          "partition_offset": 1048576,
+          "partition_sha256": "e711f1ecc81e1780adbb6939a2c91ea021b35205bc5aa5d5479e52392e8623a6",
+          "partition_size": 133169152,
+          "pending_recovery": [],
+          "recovery_error": null,
+          "target_id": "8eed6c3fdcf4cbf4fef777840d593170ef1e9cf3b31bd3a8acb05d8e59b40552",
+          "target_write_calls": 0,
+          "test_only": true
+        },
+        "journals": [
+          {
+            "sha256": "6800b69eea15af56b0c342a85bd0e8ac934a3568beb86a26adee67ef9f0f8dee",
+            "committed": true,
+            "rolled_back": false
+          }
+        ]
+      },
+      "seconds": 11.125,
+      "fixture_detached": true
+    },
+    {
+      "case": "io-write_eio",
+      "status": "pass",
+      "checks": [
+        "injected_write_eio",
+        "verified_original_partition_hash",
+        "fail_closed_or_verified_undo"
+      ],
+      "evidence": {
+        "fixture_token": "05f1707a-b55f-44e8-b16c-8337289d4723",
+        "partition_offset": 1048576,
+        "partition_size": 133169152,
+        "old_partition_sha256": "c398cc2387f414e17e812530ce386d27dda226380c13ea9abb82633aa19a6519",
+        "planned_partition_sha256": "dc8d39fcfaafbb1385cc41870d38a078c3a291a01c2145056b1fc79dc7f877fc",
+        "source_image": "baseline.img",
+        "original_source_sha256": "8d65d6ffe0707aea0fbf60f2b7b7ed7e9cd8064dcf4042d33f7acde0ae263e71",
+        "factory_seed_sha256": "d72f914412a8d07aeb2e2975a9f22908b81a2b685f1dc95bc4dc12de88d7e21e",
+        "payload_sha256": "875abea4eaea280c5ea03fec730ad51738cbbe630708304689cb548f48075f78",
+        "last_verified_state": {
+          "editing_blocked": false,
+          "exclusive": true,
+          "fixture_token": "05f1707a-b55f-44e8-b16c-8337289d4723",
+          "lease_id": "c8b11ede-403c-427c-9997-e463c28139b2",
+          "partition_offset": 1048576,
+          "partition_sha256": "c398cc2387f414e17e812530ce386d27dda226380c13ea9abb82633aa19a6519",
+          "partition_size": 133169152,
+          "pending_recovery": [],
+          "recovery_error": null,
+          "target_id": "7c608178a2d12af6c0e914794c7b084ce08b3cff1489ae53eb4abdea92368f8f",
+          "target_write_calls": 1,
+          "test_only": true
+        },
+        "journals": [
+          {
+            "sha256": "ecf7909d7af705e4a857cb2cb3f86df248888c0d3190cc0a2e9a3833a74447ae",
+            "committed": false,
+            "rolled_back": true
+          }
+        ]
+      },
+      "seconds": 11.047,
+      "fixture_detached": true
+    },
+    {
+      "case": "io-write_enospc",
+      "status": "pass",
+      "checks": [
+        "injected_write_enospc",
+        "verified_original_partition_hash",
+        "fail_closed_or_verified_undo"
+      ],
+      "evidence": {
+        "fixture_token": "04b12535-d8f0-4ed8-bcef-6edcf00846ea",
+        "partition_offset": 1048576,
+        "partition_size": 133169152,
+        "old_partition_sha256": "a0cf8b6d7a2e710f5d887c4a0a303816474f2849ce316c93b90d4cd1610c06de",
+        "planned_partition_sha256": "5c12fa35f1e700f63af80f65a8ee79173a943b8de3b2213c27c1f7ae22d5fe71",
+        "source_image": "baseline.img",
+        "original_source_sha256": "16ffc3a24535a46454e5f6d3b6cabe16fd777fa63d2c7799715cb823d6bfea5a",
+        "factory_seed_sha256": "1f592efdbda64ac5a1faf6cdbce284c77cb4590635ae819ba62b3b017a51db50",
+        "payload_sha256": "875abea4eaea280c5ea03fec730ad51738cbbe630708304689cb548f48075f78",
+        "last_verified_state": {
+          "editing_blocked": false,
+          "exclusive": true,
+          "fixture_token": "04b12535-d8f0-4ed8-bcef-6edcf00846ea",
+          "lease_id": "f139852f-2aa7-4c12-9532-59eadc540c32",
+          "partition_offset": 1048576,
+          "partition_sha256": "a0cf8b6d7a2e710f5d887c4a0a303816474f2849ce316c93b90d4cd1610c06de",
+          "partition_size": 133169152,
+          "pending_recovery": [],
+          "recovery_error": null,
+          "target_id": "ea0c447ed26e61d485871f37bcb081f533a2bb8886251f921103654c1b54e576",
+          "target_write_calls": 1,
+          "test_only": true
+        },
+        "journals": [
+          {
+            "sha256": "dbfff3cd285109678fd17f1c5f8f34f1c1e473f62fee2891d22eb520785d4754",
+            "committed": false,
+            "rolled_back": true
+          }
+        ]
+      },
+      "seconds": 11.516,
+      "fixture_detached": true
+    },
+    {
+      "case": "io-torn_write",
+      "status": "pass",
+      "checks": [
+        "injected_torn_write",
+        "verified_original_partition_hash",
+        "fail_closed_or_verified_undo"
+      ],
+      "evidence": {
+        "fixture_token": "a92ae020-7f0f-4616-9be3-af84517859a1",
+        "partition_offset": 1048576,
+        "partition_size": 133169152,
+        "old_partition_sha256": "dae83a4b76c065601fa9bf141db562b1c532ae2f0a34c24ec202017b65e6e2d6",
+        "planned_partition_sha256": "d0584f7e26a5f2c75c90d11feae1acae622effb3f6e00de451d9e97da25eb576",
+        "source_image": "baseline.img",
+        "original_source_sha256": "5c301a6dd56256c753538aaee81016b7d5947dad577facd0abacc6328387fa20",
+        "factory_seed_sha256": "c562a496b2cb21d868ac2396c1bd078068f8a0cba7e7227f74236515c2133cb0",
+        "payload_sha256": "875abea4eaea280c5ea03fec730ad51738cbbe630708304689cb548f48075f78",
+        "last_verified_state": {
+          "editing_blocked": false,
+          "exclusive": true,
+          "fixture_token": "a92ae020-7f0f-4616-9be3-af84517859a1",
+          "lease_id": "7c5175b5-8ed3-4767-bf10-c5739e12e029",
+          "partition_offset": 1048576,
+          "partition_sha256": "dae83a4b76c065601fa9bf141db562b1c532ae2f0a34c24ec202017b65e6e2d6",
+          "partition_size": 133169152,
+          "pending_recovery": [],
+          "recovery_error": null,
+          "target_id": "973a9296580d20499c00028c65c04ab4ebaf797a3d87c1565fb71f6fcce4eabb",
+          "target_write_calls": 2,
+          "test_only": true
+        },
+        "journals": [
+          {
+            "sha256": "1fc8ba7cbf0019457877bc048025bbbcdce34f20e9ad31716f02989ab5a6666c",
+            "committed": false,
+            "rolled_back": true
+          }
+        ]
+      },
+      "seconds": 11.531,
+      "fixture_detached": true
+    },
+    {
+      "case": "io-sync_eio",
+      "status": "pass",
+      "checks": [
+        "injected_sync_eio",
+        "verified_original_partition_hash",
+        "fail_closed_or_verified_undo"
+      ],
+      "evidence": {
+        "fixture_token": "8c1a3284-88ce-4979-b5f5-ba079b833eae",
+        "partition_offset": 1048576,
+        "partition_size": 133169152,
+        "old_partition_sha256": "67fbdbdad1e61832e65f2ed046f0be33245575db7d98f3ff3757f1b22798c8e6",
+        "planned_partition_sha256": "068aa90acd40fa6e96ad5edf08e3f252ccfedadaafdf555638a817a3e36791aa",
+        "source_image": "baseline.img",
+        "original_source_sha256": "efd95578459393bd08eede8125460a5206b44127352ceae6b646a3d95aa4e894",
+        "factory_seed_sha256": "442861211d118fb252015c6cf8a273ac3d12aca51c94ec85fe1012c94d60507e",
+        "payload_sha256": "875abea4eaea280c5ea03fec730ad51738cbbe630708304689cb548f48075f78",
+        "last_verified_state": {
+          "editing_blocked": false,
+          "exclusive": true,
+          "fixture_token": "8c1a3284-88ce-4979-b5f5-ba079b833eae",
+          "lease_id": "65794608-ae1c-4dad-a597-2ceef5520f8f",
+          "partition_offset": 1048576,
+          "partition_sha256": "67fbdbdad1e61832e65f2ed046f0be33245575db7d98f3ff3757f1b22798c8e6",
+          "partition_size": 133169152,
+          "pending_recovery": [],
+          "recovery_error": null,
+          "target_id": "f2a9743a7225ab8e764d62a83f60248f30341cac24aa35908515d4d7ffb66512",
+          "target_write_calls": 40,
+          "test_only": true
+        },
+        "journals": [
+          {
+            "sha256": "0c00c1863107cf4bc11b4396b6ff0e81eda1110298401798f970bc339f0fc8de",
+            "committed": false,
+            "rolled_back": true
+          }
+        ]
+      },
+      "seconds": 15.953,
+      "fixture_detached": true
+    },
+    {
+      "case": "io-journal_enospc",
+      "status": "pass",
+      "checks": [
+        "injected_journal_enospc",
+        "verified_original_partition_hash",
+        "fail_closed_or_verified_undo"
+      ],
+      "evidence": {
+        "fixture_token": "dd8de578-0cfb-4c9e-95a4-61879c5c6d45",
+        "partition_offset": 1048576,
+        "partition_size": 133169152,
+        "old_partition_sha256": "2ffb360a8569576e18d0789a87e0d6b5266f9d3f8c8772d94342e13ab707d7d7",
+        "planned_partition_sha256": "8d9bae217afe570f3347c1d20164c1090e822e1b80306c21013451bcbd764c36",
+        "source_image": "baseline.img",
+        "original_source_sha256": "a4dfbf4e08dc85fbf6db631269c55486905d2aa41b8d0bdbaab3c6b9f318389c",
+        "factory_seed_sha256": "c9d4134ea5619f37505f12e176b0cab3f8091dd5f13757a683c6ae02de4a2f79",
+        "payload_sha256": "875abea4eaea280c5ea03fec730ad51738cbbe630708304689cb548f48075f78",
+        "last_verified_state": {
+          "editing_blocked": true,
+          "exclusive": true,
+          "fixture_token": "dd8de578-0cfb-4c9e-95a4-61879c5c6d45",
+          "lease_id": "5efcd421-dfaf-4e09-ade3-a5609c8a6c72",
+          "partition_offset": 1048576,
+          "partition_sha256": "2ffb360a8569576e18d0789a87e0d6b5266f9d3f8c8772d94342e13ab707d7d7",
+          "partition_size": 133169152,
+          "pending_recovery": [],
+          "recovery_error": "recovery journal is incomplete or corrupt; editing remains blocked",
+          "target_id": "5328eb780d9c595ea70d1010005deb099d9d0f7310592447a8eec4d746ced26d",
+          "target_write_calls": 0,
+          "test_only": true
+        },
+        "journals": [
+          {
+            "sha256": "875687fdaf12961b993bd559158bb56a6def15bc74d6b805ea88303818de659a",
+            "committed": false,
+            "rolled_back": false
+          }
+        ]
+      },
+      "seconds": 12.672,
+      "fixture_detached": true
+    },
+    {
+      "case": "recovery-write-eio",
+      "status": "pass",
+      "checks": [
+        "interrupted_or_corrupt_recovery_refuses_new_edits",
+        "recovery_is_restartable",
+        "explicit_recovery_full_old_hash"
+      ],
+      "evidence": {
+        "fixture_token": "b45bb812-413d-4605-ba91-9ddc3c2c5cda",
+        "partition_offset": 1048576,
+        "partition_size": 133169152,
+        "old_partition_sha256": "d1f755d26a06020207ca28cf59b06ddb9a22bf34a83626dbc53d30e2cbc7bb90",
+        "planned_partition_sha256": "7b1b0e85fd3167927da56b9b32bb8e632f5edfd9e754a03d8b3fdbfcf4663f23",
+        "source_image": "baseline.img",
+        "original_source_sha256": "7510b3b7baab3b34fd4da0eab78699963d34574511e3c207f175ab95a5abc998",
+        "factory_seed_sha256": "725bb16a4c9146c77b5c51a134ba302165c097832f9dd4ef1232c1db45e57d0f",
+        "payload_sha256": "875abea4eaea280c5ea03fec730ad51738cbbe630708304689cb548f48075f78",
+        "last_verified_state": {
+          "editing_blocked": false,
+          "exclusive": true,
+          "fixture_token": "b45bb812-413d-4605-ba91-9ddc3c2c5cda",
+          "lease_id": "7b9c6369-3441-4f9f-ae9d-3bac41c406a4",
+          "partition_offset": 1048576,
+          "partition_sha256": "d1f755d26a06020207ca28cf59b06ddb9a22bf34a83626dbc53d30e2cbc7bb90",
+          "partition_size": 133169152,
+          "pending_recovery": [],
+          "recovery_error": null,
+          "target_id": "0204eb0d5371d4120c298c40144a6dc3e7c1607e89efcff973081a867d5c0c1f",
+          "target_write_calls": 1,
+          "test_only": true
+        },
+        "journals": [
+          {
+            "sha256": "7e9127a1ce3ece46a2b85d051903228eb6c14adf76e95888c82cbd967b10e017",
+            "committed": false,
+            "rolled_back": true
+          }
+        ]
+      },
+      "seconds": 13.906,
+      "fixture_detached": true
+    },
+    {
+      "case": "recovery-corrupt-journal",
+      "status": "pass",
+      "checks": [
+        "interrupted_or_corrupt_recovery_refuses_new_edits",
+        "zero_automatic_writes_with_corrupt_journal",
+        "explicit_recovery_full_old_hash"
+      ],
+      "evidence": {
+        "fixture_token": "f90a7791-1f81-466e-8da7-ebed09e62d72",
+        "partition_offset": 1048576,
+        "partition_size": 133169152,
+        "old_partition_sha256": "7bd7425cde593a6c701eca23ff679286f54d0c4ff9107a8bca489f190ad6f061",
+        "planned_partition_sha256": "33e9a0fd5fc8cdf86db5514dec2107af58c2fb92b0d42f288e7016631cedd84d",
+        "source_image": "baseline.img",
+        "original_source_sha256": "f32bb9f2e6a3a447a80432e9776434a84528030ead719b6f4fd78a63f123142d",
+        "factory_seed_sha256": "3b865963dc7f82c7188760475e7a2d147949557b1c3df01c46f26fdb16c0e333",
+        "payload_sha256": "875abea4eaea280c5ea03fec730ad51738cbbe630708304689cb548f48075f78",
+        "last_verified_state": {
+          "editing_blocked": false,
+          "exclusive": true,
+          "fixture_token": "f90a7791-1f81-466e-8da7-ebed09e62d72",
+          "lease_id": "3ad3197c-63b4-4a1f-bf3b-aa6bab4908be",
+          "partition_offset": 1048576,
+          "partition_sha256": "7bd7425cde593a6c701eca23ff679286f54d0c4ff9107a8bca489f190ad6f061",
+          "partition_size": 133169152,
+          "pending_recovery": [],
+          "recovery_error": null,
+          "target_id": "d146c8620f08c170c5e79a28fb3adb4a981ae13cf126ab63102e935037aca9fa",
+          "target_write_calls": 1,
+          "test_only": true
+        },
+        "journals": [
+          {
+            "sha256": "95a2662cf8b0e20683dc6736f37d48a69f4d4b9a16d5faa249e2eb0db66e2598",
+            "committed": false,
+            "rolled_back": true
+          }
+        ]
+      },
+      "seconds": 14.954,
+      "fixture_detached": true
+    },
+    {
+      "case": "device-recovery_wrote_block",
+      "status": "pass",
+      "checks": [
+        "interrupted_or_corrupt_recovery_refuses_new_edits",
+        "recovery_is_restartable",
+        "explicit_recovery_full_old_hash"
+      ],
+      "evidence": {
+        "fixture_token": "6912cc0d-f68b-47b1-970f-0111c8923584",
+        "partition_offset": 1048576,
+        "partition_size": 133169152,
+        "old_partition_sha256": "b69e057d32ea346aa111721d9178407e7caf677ab4f3793c7803587d6c80f87b",
+        "planned_partition_sha256": "3163b6707955aa499dcc0f01ff1a5d994b3677230e747d83fa0aa9b98838bf87",
+        "source_image": "baseline.img",
+        "original_source_sha256": "feacb5c933394fa7028c97596d03b6d8d65ac86dc7dadf1a92f689ab2e54e0a4",
+        "factory_seed_sha256": "986c0a80897f06fd1b8086c289c27bfcf483e9cef1dbb08db284037820cb351c",
+        "payload_sha256": "875abea4eaea280c5ea03fec730ad51738cbbe630708304689cb548f48075f78",
+        "last_verified_state": {
+          "editing_blocked": false,
+          "exclusive": true,
+          "fixture_token": "6912cc0d-f68b-47b1-970f-0111c8923584",
+          "lease_id": "197c4c34-2dcd-4e14-8b17-ca98cc25fe52",
+          "partition_offset": 1048576,
+          "partition_sha256": "b69e057d32ea346aa111721d9178407e7caf677ab4f3793c7803587d6c80f87b",
+          "partition_size": 133169152,
+          "pending_recovery": [],
+          "recovery_error": null,
+          "target_id": "ea57e154de23ddad307ef7028314a17db30930edc8e80f361bcac799d7be47db",
+          "target_write_calls": 0,
+          "test_only": true
+        },
+        "journals": [
+          {
+            "sha256": "0cce2106bf0a1f46f43ddfdf0bb712927f6b84bba9a5e40e41d87f67a02311e9",
+            "committed": false,
+            "rolled_back": true
+          }
+        ]
+      },
+      "seconds": 15.109,
+      "fixture_detached": true
+    },
+    {
+      "case": "device-recovery_synced",
+      "status": "pass",
+      "checks": [
+        "interrupted_or_corrupt_recovery_refuses_new_edits",
+        "recovery_is_restartable",
+        "explicit_recovery_full_old_hash"
+      ],
+      "evidence": {
+        "fixture_token": "df59cec1-c03c-470f-9223-5a25f8efcf64",
+        "partition_offset": 1048576,
+        "partition_size": 133169152,
+        "old_partition_sha256": "3b4f3b0eb3e89fb4a38cdeb57bc550b388b5f1f0ecc30739c7ec2af47856cf24",
+        "planned_partition_sha256": "c0bbbc7b065e30756fbe2d90cfa0e73947c5c0ece9ff41648413aa2798a3b853",
+        "source_image": "baseline.img",
+        "original_source_sha256": "ddc6b4a1406f0041a9773a1ab41f2fe244a9c84045bf0f3040349afbdea025cc",
+        "factory_seed_sha256": "ac91b6cda6292588884adcae85dba4853680915af454363d703c52b407bea193",
+        "payload_sha256": "875abea4eaea280c5ea03fec730ad51738cbbe630708304689cb548f48075f78",
+        "last_verified_state": {
+          "editing_blocked": false,
+          "exclusive": true,
+          "fixture_token": "df59cec1-c03c-470f-9223-5a25f8efcf64",
+          "lease_id": "47b21c2d-fd18-4f27-91ab-d1b52d1e194b",
+          "partition_offset": 1048576,
+          "partition_sha256": "3b4f3b0eb3e89fb4a38cdeb57bc550b388b5f1f0ecc30739c7ec2af47856cf24",
+          "partition_size": 133169152,
+          "pending_recovery": [],
+          "recovery_error": null,
+          "target_id": "d2cf8c8325be8b2a12bb0c4414cb3a46ba71639865772a5d82221c5290733c91",
+          "target_write_calls": 0,
+          "test_only": true
+        },
+        "journals": [
+          {
+            "sha256": "1c8d89479ae70b92fe1ec730219fd9e9d44c9fcbd5653ea9af83ab38c6e6cff0",
+            "committed": false,
+            "rolled_back": true
+          }
+        ]
+      },
+      "seconds": 15.453,
+      "fixture_detached": true
+    },
+    {
+      "case": "windows-gui-consent",
+      "status": "pass",
+      "checks": [
+        "read_only_devices_available",
+        "production_device_write_disabled",
+        "read_only_browser_has_no_write_action",
+        "device_browser_does_not_change_image_session",
+        "system_and_boot_protection_visible",
+        "gui_cannot_bypass_production_guard",
+        "test_device_lease_held_before_preview",
+        "confirmation_defaults_to_cancel",
+        "empty_phrase_disables_write",
+        "wrong_phrase_disables_write",
+        "dismissal_does_not_authorize",
+        "cancelled_dialog_zero_writes",
+        "dialog_timeout_cancels",
+        "timed_out_dialog_zero_writes",
+        "exact_phrase_enables_write",
+        "actual_primary_button_event_accepts_plan",
+        "confirmed_test_write_commits",
+        "gui_commit_full_partition_hash_matches",
+        "gui_consent_is_single_use",
+        "native_driver_verifies_gui_committed_file",
+        "driver_feedback_read_by_backend"
+      ],
+      "evidence": {
+        "fixture_token": "a791b92f-4b60-4c78-9b82-2b0e9199b9bf",
+        "partition_offset": 1048576,
+        "partition_size": 133169152,
+        "old_partition_sha256": "e409042451282a70e88c24041eca35652309d0d776bbb201dd2b2d01d056fe4d",
+        "planned_partition_sha256": "ebc4efb7dc87676bdd0706d50dd631b72ce4902c255b2407c68f1fbaecf55255",
+        "source_image": "baseline.img",
+        "original_source_sha256": "acfcae953e75233ef5c4f12cc3eea56b8915bf9c1a94bb1dd1c750372b632635",
+        "factory_seed_sha256": "f8238063c9381149135cef0e9190936b30207d6a1f1b071a90fa0669d4a7a766",
+        "payload_sha256": "875abea4eaea280c5ea03fec730ad51738cbbe630708304689cb548f48075f78",
+        "last_verified_state": {
+          "editing_blocked": false,
+          "exclusive": true,
+          "fixture_token": "a791b92f-4b60-4c78-9b82-2b0e9199b9bf",
+          "lease_id": "f43086a5-d166-4825-bf37-b05b8313ff39",
+          "partition_offset": 1048576,
+          "partition_sha256": "e409042451282a70e88c24041eca35652309d0d776bbb201dd2b2d01d056fe4d",
+          "partition_size": 133169152,
+          "pending_recovery": [],
+          "recovery_error": null,
+          "target_id": "7f71c6a00b7816cb688a3dcc9645b1cc47b460e0653150c2f0515344c88f6552",
+          "target_write_calls": 0,
+          "test_only": true
+        },
+        "journals": [
+          {
+            "sha256": "715bb719839f8f1b0d28eda8b54ed672f85bada802bf1d65fb8bf9d1f0c5ca3b",
+            "committed": true,
+            "rolled_back": false
+          }
+        ]
+      },
+      "seconds": 22.75,
+      "fixture_detached": true
+    }
+  ],
+  "summary": {
+    "cases": 29,
+    "check_groups": 125,
+    "backend_cases": 28,
+    "gui_cases": 1
+  },
+  "aggregated_at": "2026-11-16T14:36:46.684575+00:00",
+  "source_reports": [
+    {
+      "path": "artifacts/devices-windows-full-core-results.json",
+      "sha256": "d398d5c546131929b4437ec46f51fd27fc94d3a1ea6c5edb38da2a291c45f3d6"
+    },
+    {
+      "path": "artifacts/devices-windows-v5-results.json",
+      "sha256": "ce815b85bf855e7804c712dd82b6e38e1c0283fae297fca9fb361062f5433205"
+    }
+  ],
+  "validation_source_cohorts": {
+    "backend": [
+      {
+        "path": "crates/xetch-core/src/devices/linux.rs",
+        "sha256": "d58816e32496907332cf871d7befbdfc227acf904d4e1426e3ec68334ddfde1a"
+      },
+      {
+        "path": "crates/xetch-core/src/devices/mod.rs",
+        "sha256": "f4cd4f478f5b7319aeb80f9a587ab5ac838a9d528c0e3e8544ab266ac45b08cd"
+      },
+      {
+        "path": "crates/xetch-core/src/devices/process.rs",
+        "sha256": "2c3b22ad0de0d1296753ab51c25ac043b3b269d16057be9278ed4dfd8a2a93ff"
+      },
+      {
+        "path": "crates/xetch-core/src/devices/windows.rs",
+        "sha256": "f3f59fc7d88cade7391cdd681f9d91f478011ec7af8fb18341bc9352e7566825"
+      },
+      {
+        "path": "crates/xetch-core/src/devices/windows_inventory.ps1",
+        "sha256": "1b564445f4b24963690e1caa448ebc6d9554d8ab552b5091e9fe71a9a68f13cc"
+      },
+      {
+        "path": "crates/xetch-core/src/device_validation/linux.rs",
+        "sha256": "02c2679af5d9110764faaae2e9f9889de9dd52f3985689f347edb29d1c50fdd7"
+      },
+      {
+        "path": "crates/xetch-core/src/device_validation/mod.rs",
+        "sha256": "caf68c4831aebf678e2529d4fbc41a76c7af446683a21e6b51fd2338afa5d27e"
+      },
+      {
+        "path": "crates/xetch-core/src/device_validation/windows.rs",
+        "sha256": "b58b687a7f5b9e1b84049809c54ebd88b67048d8fe9a95310196bb7efd4b346e"
+      },
+      {
+        "path": "crates/xetch-core/examples/device_validation_probe.rs",
+        "sha256": "34700ff019feed59b0ca52655c85952068ccdcbf386ae2225fcea854067681be"
+      },
+      {
+        "path": "scripts/devices_validate.py",
+        "sha256": "20c6686cfe7de72dd9b682579b76a4dd6a05fcf0c5d2f8dc14a02c26c513ca84"
+      },
+      {
+        "path": "scripts/windows_device_fixture.ps1",
+        "sha256": "5a6a556fe6dfd46ffcbee398bd95d2780b476c79b8d83a31a9a3f3b44cf6b19a"
+      }
+    ],
+    "gui": [
+      {
+        "path": "crates/xetch-core/src/devices/linux.rs",
+        "sha256": "d58816e32496907332cf871d7befbdfc227acf904d4e1426e3ec68334ddfde1a"
+      },
+      {
+        "path": "crates/xetch-core/src/devices/mod.rs",
+        "sha256": "f4cd4f478f5b7319aeb80f9a587ab5ac838a9d528c0e3e8544ab266ac45b08cd"
+      },
+      {
+        "path": "crates/xetch-core/src/devices/process.rs",
+        "sha256": "2c3b22ad0de0d1296753ab51c25ac043b3b269d16057be9278ed4dfd8a2a93ff"
+      },
+      {
+        "path": "crates/xetch-core/src/devices/windows.rs",
+        "sha256": "f3f59fc7d88cade7391cdd681f9d91f478011ec7af8fb18341bc9352e7566825"
+      },
+      {
+        "path": "crates/xetch-core/src/devices/windows_inventory.ps1",
+        "sha256": "1b564445f4b24963690e1caa448ebc6d9554d8ab552b5091e9fe71a9a68f13cc"
+      },
+      {
+        "path": "crates/xetch-core/src/device_validation/linux.rs",
+        "sha256": "02c2679af5d9110764faaae2e9f9889de9dd52f3985689f347edb29d1c50fdd7"
+      },
+      {
+        "path": "crates/xetch-core/src/device_validation/mod.rs",
+        "sha256": "caf68c4831aebf678e2529d4fbc41a76c7af446683a21e6b51fd2338afa5d27e"
+      },
+      {
+        "path": "crates/xetch-core/src/device_validation/windows.rs",
+        "sha256": "b58b687a7f5b9e1b84049809c54ebd88b67048d8fe9a95310196bb7efd4b346e"
+      },
+      {
+        "path": "crates/xetch-core/examples/device_validation_probe.rs",
+        "sha256": "34700ff019feed59b0ca52655c85952068ccdcbf386ae2225fcea854067681be"
+      },
+      {
+        "path": "scripts/devices_validate.py",
+        "sha256": "c4795b9db0a3e738c7ee1f7f3c4668c33b0cb15b103e3d0cf9b07da2b8687533"
+      },
+      {
+        "path": "scripts/windows_device_fixture.ps1",
+        "sha256": "5a6a556fe6dfd46ffcbee398bd95d2780b476c79b8d83a31a9a3f3b44cf6b19a"
+      }
+    ]
+  },
+  "gui_backend_sha256": "fcf9cac4742bcbb563083db8ec2df273e0c75ecd19e2ddc082b41b536b2470c8"
+}

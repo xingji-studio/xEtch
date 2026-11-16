@@ -15,7 +15,7 @@ public sealed class BackendClient : IAsyncDisposable
     private bool _disposed;
     public string ProgramPath { get; }
 
-    public BackendClient(string? program = null)
+    public BackendClient(string? program = null, IReadOnlyList<string>? arguments = null)
     {
         ProgramPath = program ?? FindBackend();
         var start = new ProcessStartInfo(ProgramPath)
@@ -25,8 +25,7 @@ public sealed class BackendClient : IAsyncDisposable
             StandardInputEncoding = new UTF8Encoding(false),
             StandardOutputEncoding = new UTF8Encoding(false), StandardErrorEncoding = new UTF8Encoding(false)
         };
-        start.ArgumentList.Add("serve");
-        start.ArgumentList.Add("--stdio");
+        foreach (var argument in arguments ?? new[] { "serve", "--stdio" }) start.ArgumentList.Add(argument);
         var project = FindProject();
         foreach (var (variable, name) in new[] { ("XETCH_QEMU_IMG", "qemu-img.exe"), ("XETCH_QEMU_STORAGE_DAEMON", "qemu-storage-daemon.exe") })
         {

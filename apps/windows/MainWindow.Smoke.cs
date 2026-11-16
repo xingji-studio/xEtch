@@ -22,6 +22,11 @@ public sealed partial class MainWindow
     private async Task SmokeAsync(string configuration)
     {
         using var config = JsonDocument.Parse(await File.ReadAllTextAsync(configuration));
+        if (config.RootElement.TryGetProperty("device_fixture", out var deviceFixture) && deviceFixture.GetBoolean())
+        {
+            await SmokeDeviceAsync(config.RootElement);
+            return;
+        }
         string Field(string key) => config.RootElement.GetProperty(key).GetString()!;
         var filesystem = config.RootElement.TryGetProperty("filesystem", out var fs) ? fs.GetString()! : "NTFS";
         var create = config.RootElement.TryGetProperty("create_image", out var createField) && createField.GetBoolean();

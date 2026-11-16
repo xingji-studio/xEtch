@@ -1,0 +1,146 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "completed_at": "2026-11-16T14:39:21.827428+00:00",
+  "scope": "D0 readonly Windows/Linux discovery and protection; D1 owned 128 MiB MBR/FAT32 loop/VHD lab only. D2 real physical writes remain disabled.",
+  "platforms": {
+    "linux": {
+      "rust_workspace_all_features_include_ignored": {
+        "passed": 39,
+        "failed": 0,
+        "ignored": 0,
+        "log_sha256": "ad3d6764ecca32e3369d80699a787307b37db29293a6c1bbcbd80ee7a38c7b7a"
+      },
+      "clippy_all_targets_all_features_deny_warnings": {
+        "status": "pass",
+        "log_sha256": "29a94745b9cdd6ec35b4077b2269a4e32e2539f36110546950fc21541a99f0cb"
+      },
+      "device_results": "host-devices-linux-results.json",
+      "package": {
+        "path": "dist/xetch-linux-x64",
+        "manifest_sha256": "dca5e575d64893b6d256a6c7afd3c0a2fca95fa7d32b91ad431c8c8f6d6ba645",
+        "backend_sha256": "1bedfd23effeb7eebb3a69abad9a23f576ce7bb8db6bd12dfaef1c328f52afa8",
+        "nonshipping_validation_examples_excluded": true,
+        "all_manifest_files_verified": 52
+      }
+    },
+    "windows": {
+      "rust_workspace_all_features_include_ignored": {
+        "passed": 36,
+        "failed": 0,
+        "ignored": 0,
+        "log_sha256": "d4729c547c96af79eb3be5d6fe0526db122ffad90165ee42501ba9829aa4f27c"
+      },
+      "clippy_all_targets_all_features_deny_warnings": {
+        "status": "pass",
+        "log_sha256": "08d937d5c2a27380904b3c81afc41ca06a2ac8342b625805b10d2310dd5ec4d1"
+      },
+      "device_results": "host-devices-windows-results.json",
+      "package": {
+        "path": "dist/xetch-windows-x64",
+        "manifest_sha256": "d163a7d2f622762af28de03068d50b584b842b5aefe28e5dc485b4fe701b9b11",
+        "backend_sha256": "66e0ea529d275cf7a5c8de5f2c75cb97d9ff4d584329d572d8e3b657f1872e1d",
+        "nonshipping_validation_examples_excluded": true,
+        "all_manifest_files_verified": 671
+      }
+    }
+  },
+  "reports": {
+    "host-devices-discovery-linux-results.json": {
+      "sha256": "91a72d8f9c5ff06cd44222b68d8b76471d007ed6a2cfe18709ac179f5ac7b2c8",
+      "status": "pass",
+      "cases": 0,
+      "check_groups": null
+    },
+    "host-devices-discovery-windows-gui-results.json": {
+      "sha256": "9db76bad5c603fb9187d89320bff473fed791a01ed4abcd21e5e9414bee7e617",
+      "status": "pass",
+      "cases": 0,
+      "check_groups": 6
+    },
+    "host-devices-discovery-windows-results.json": {
+      "sha256": "ca488acfa386e2ef5113962fa2bec1bb3513617ea645df1504112e3cfe59dddc",
+      "status": "pass",
+      "cases": 0,
+      "check_groups": null
+    },
+    "host-devices-linux-results.json": {
+      "sha256": "38e0272811fbeee9118813928badce58161dd32e01d83ce012df74cb21f0c556",
+      "status": "pass",
+      "cases": 28,
+      "check_groups": 104
+    },
+    "host-devices-package-linux-results.json": {
+      "sha256": "4126fd3edf7db086e572b867c586527d677ff0d094c75c86bee86a8674201529",
+      "status": "pass",
+      "cases": 0,
+      "check_groups": 13
+    },
+    "host-devices-package-windows-results.json": {
+      "sha256": "af1e2ec677a3c08e14c0478f941172ffef7f42c66666ac538a5f7cac40284f50",
+      "status": "pass",
+      "cases": 0,
+      "check_groups": 11
+    },
+    "host-devices-windows-gui-results.json": {
+      "sha256": "03b20d1db1730168415453b20bfea1cbb37486ef6632fcd91fbdc01836532e43",
+      "status": "pass",
+      "cases": 0,
+      "check_groups": 19
+    },
+    "host-devices-windows-results.json": {
+      "sha256": "eaaf3a8901795016e26d27bba1fd83ce1752bf2d668f5366f8478aa7a26baf11",
+      "status": "pass",
+      "cases": 29,
+      "check_groups": 125
+    }
+  },
+  "limits": [
+    "Real physical partition writes, 4Kn and physical power loss are not verified or enabled.",
+    "D1 uses owned MBR/FAT32 virtual devices; physical NTFS/ext4/exFAT editing is not claimed.",
+    "Linux discovery sees the current mount namespace; enumeration alone never grants write eligibility.",
+    "D1 recovery logs are outside the virtual disk, but not verified to be on a different real physical failure domain.",
+    "Windows directory-entry power-loss durability is not established.",
+    "Actual WinUI automation-peer button events are exercised; physical keyboard/picker/accessibility flows are not fully tested.",
+    "Windows backend matrix and GUI rerun have matching Rust sources and probe hashes; the controller case selection and both source reports are retained.",
+    "Remote CI is configured but has not run in this session."
+  ],
+  "cleanup": {
+    "linux": {
+      "status": "pass",
+      "owned_mounts": [],
+      "owned_loop_backings": []
+    },
+    "windows": {
+      "attached_owned_vhds": [],
+      "status": "pass",
+      "owned_vhds_checked": 4,
+      "active_owned_test_processes": []
+    },
+    "temporary_images": {
+      "status": "pass",
+      "scope": "Only explicitly listed or token-marked controller-created device test roots; result JSON, logs, source and distribution packages retained.",
+      "removed_root_count": 17,
+      "allocated_bytes_before_removal": 1555148800
+    }
+  },
+  "totals": {
+    "rust_test_executions_across_platforms": 75,
+    "device_cases": 57,
+    "device_check_groups": 229,
+    "write_confirmation_gui_checks": 19,
+    "readonly_gui_checks": 6,
+    "package_checks": 24
+  },
+  "preexisting_license_sha256": "1eb85fc97224598dad1852b5d6483bbcf0aa8608790dcc657a5a2a761ae9c8c6",
+  "format_and_syntax": {
+    "rustfmt": "pass",
+    "clippy_all_features_linux": "pass",
+    "clippy_all_features_windows": "pass",
+    "python_ast": "pass",
+    "powershell_parser": "pass",
+    "ci_yaml_jobs": 6,
+    "remote_ci_run": false
+  },
+  "validation_order": "Production-image workspace regressions passed before the final lab-only VHD quiescing/snapshot refinements. Final D1 suites and all-target/all-feature Clippy cover the final validation implementation; final relocated package checks also pass."
+}

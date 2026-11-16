@@ -45,3 +45,7 @@ JSON-RPC 错误：-32700 解析失败，-32600 请求结构错误，-32601 方�
 `commit_uncertain` 表示 manifest 或输出已经原子发布，但后续同步或清理失败。调用方应先用 `workspace.plan`（CLI 为 `workspace info` / `plan`）或检查输出确认结果，再决定后续操作；不能假设已回滚或直接重复修改。对应 CLI 退出码为 4。
 
 CLI 退出码：0 成功；2 参数错误（含 clap 参数解析）；3 不支持；4 I/O 或依赖错误；5 会话或内容冲突。应用错误以 JSON 写入 stderr；clap 的帮助、参数错误采用其标准文本格式。`--json` 输出紧凑 JSON，默认输出缩进 JSON。
+
+## 本机设备发现
+
+`device.list {}` 和 `device.inspect {id}` 只读枚举 Windows/Linux 本机设备。返回设备依赖图、保护原因、快照 ID 和未验证警告；所有 `write_allowed` 恒为 false。`device.open/write/commit/confirm/recover` 返回 unsupported，实验文件系统开关、force 或伪造 confirmed 不会启用设备写入。详见 [设备接口](HOST-DEVICES.md)。独立 D1 验证程序不注册到生产 RPC。

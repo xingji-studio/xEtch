@@ -109,6 +109,7 @@ public sealed partial class MainWindow : Window
         UpButton.IsEnabled = RefreshButton.IsEnabled = DirectoryPath.IsEnabled = Files.IsEnabled = !_busy && CanRead;
         FileCommands.IsEnabled = !_busy && CanRead;
         ExperimentalToggle.IsEnabled = !_busy;
+        DevicesButton.IsEnabled = !_busy && _backend is not null;
         ImportButton.IsEnabled = MkdirButton.IsEnabled = !_busy && CanWrite;
         GetButton.IsEnabled = !_busy && CanRead && Selection is { IsDirectory: false };
         bool editable = !_busy && CanWrite && Selection is { } file &&
@@ -118,6 +119,63 @@ public sealed partial class MainWindow : Window
             !(Partition?.FileSystem == "NTFS" && Selection!.IsDirectory);
         AccessText.Text = Partition is null ? "" : CanWrite ? "可以编辑 · 更改在另存后生效" :
             Partition.FileSystem is "exFAT" or "ext4" ? "浏览模式 · 写入需开启实验选项" : "浏览模式";
+    }
+
+    private async Task<JsonElement> ReadDevicesAsync() => await Call("device.list", new { });
+
+    private async void Devices_Click(object sender, RoutedEventArgs args) => await RunAsync("正在读取本机磁盘信息…", async () =>
+    {
+        var inventory = await ReadDevicesAsync();
+        await CreateDeviceDialog(inventory).ShowAsync();
+    });
+
+    private static string DeviceProtectionText(string code, string fallback) => code switch
+    {
+        "system" => "当前系统所在分区",
+        "boot" => "系统引导所需分区",
+        "efi" => "EFI 系统分区",
+        "reserved" => "微软保留分区（MSR）",
+        "recovery" => "恢复或 OEM 保留分区",
+        "active_mbr" => "MBR 活动引导分区",
+        "swap" or "pagefile" => "交换空间或页面文件所在分区",
+        "hibernation" => "休眠文件所在分区",
+        "crash_dump" => "崩溃转储所在分区",
+        "runtime" => "当前程序或临时数据所在分区",
+        "workspace" => "当前工作区所在分区",
+        "complex_storage" => "加密、复合或暂不支持的存储关系",
+        "ambiguous_identity" => "设备身份重复，无法唯一确认目标",
+        "protected_backing_or_same_disk" => "与受保护分区共享磁盘或底层设备",
+        "mounted" => "已挂载或分配访问路径，尚未建立独占访问",
+        "metadata_incomplete" => "设备信息不完整，保持保护",
+        "identity_unverified" => "尚未验证稳定的设备身份",
+        "read_only_or_unknown" => "介质只读或状态未知",
+        "unsupported_sector_geometry" => "扇区规格尚未准入",
+        "unaligned_partition" or "unaligned_partition_end" => "分区边界未按物理扇区对齐",
+        "volume_state_unverified" => "文件系统状态、加密和独占访问尚未验证",
+        "device_write_disabled" => "本版本仅支持查看本机设备",
+        _ => fallback
+    };
+
+    private ContentDialog CreateDeviceDialog(JsonElement inventory)
+    {
+        var panel = new StackPanel { Spacing = 12, MaxWidth = 720 };
+        panel.Children.Add(new TextBlock { Text = "本机设备仅供查看。系统、引导、恢复分区受保护，当前版本不开放设备写入。", TextWrapping = TextWrapping.Wrap });
+        foreach (var device in inventory.GetProperty("devices").EnumerateArray())
+        {
+            var roles = string.Join("、", device.GetProperty("roles").EnumerateArray().Select(r => DeviceProtectionText(r.GetString()!, r.GetString()!)));
+            var mounts = string.Join("、", device.GetProperty("mount_points").EnumerateArray().Select(r => r.GetString()));
+            var reasons = device.GetProperty("protection").GetProperty("reasons").EnumerateArray()
+                .Select(r => DeviceProtectionText(r.GetProperty("code").GetString()!, r.GetProperty("message").GetString()!));
+            var block = new StackPanel { Spacing = 4 };
+            block.Children.Add(new TextBlock { Text = $"{device.GetProperty("name").GetString()} · {FileItem.FormatSize(device.GetProperty("size").GetUInt64())}", FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap });
+            block.Children.Add(new TextBlock { Text = $"{device.GetProperty("id").GetString()}  {device.GetProperty("filesystem").GetString()}  {mounts}", TextWrapping = TextWrapping.Wrap });
+            if (roles.Length > 0) block.Children.Add(new TextBlock { Text = $"保护依据：{roles}", TextWrapping = TextWrapping.Wrap });
+            block.Children.Add(new TextBlock { Text = string.Join("\n", reasons), FontSize = 12, TextWrapping = TextWrapping.Wrap });
+            panel.Children.Add(block);
+        }
+        var warnings = string.Join("\n", inventory.GetProperty("warnings").EnumerateArray().Select(w => w.GetString()));
+        if (warnings.Length > 0) panel.Children.Add(new TextBlock { Text = warnings, TextWrapping = TextWrapping.Wrap, FontSize = 12 });
+        return new ContentDialog { XamlRoot = Root.XamlRoot, Title = "本机磁盘与分区 · 只读", Content = new ScrollViewer { Content = panel, MaxHeight = 520 }, CloseButtonText = "关闭", DefaultButton = ContentDialogButton.Close };
     }
 
     private static string NormalizeDirectory(string path)

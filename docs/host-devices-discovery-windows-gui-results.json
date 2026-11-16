@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "platform": "native Windows x64",
+  "checks": [
+    "read_only_devices_available",
+    "production_device_write_disabled",
+    "read_only_browser_has_no_write_action",
+    "device_browser_does_not_change_image_session",
+    "system_and_boot_protection_visible",
+    "gui_cannot_bypass_production_guard"
+  ],
+  "error": null,
+  "read_only": true
+}

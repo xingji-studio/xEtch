@@ -50,3 +50,7 @@ ext4 检查完整的 JBD2 超级块 CRC，按既有特性生成日志标签及�
 6. 完善 Windows GUI，接入 Linux/macOS 原生前端。现有分区表修改、分区缩放、系统挂载和原地写回另行验收。
 
 物理分区编辑的保护、授权与恢复设计见 [规划文档](PHYSICAL-PARTITIONS-PLAN.md)，当前实现不开放设备写入。
+
+## 本机设备发现与验证
+
+`devices` 模块通过 Linux lsblk/sysfs/proc 或 Windows 内嵌 Storage/CIM 查询只读枚举，统一计算系统/引导、保留、运行数据、底层和同盘保护，CLI/RPC/Windows GUI 复用同一策略。生产设备写入关闭。`device_validation` 仅在 validation-hooks 下提供独立 example，限新建且验证关联的 VHD/loop，用持续租约、绑定计划的单次确认、有界数据窗口和持久撤销记录验证提交/恢复；它尚不是真实设备的特权 helper。见 [D0/D1 边界](HOST-DEVICES.md)。

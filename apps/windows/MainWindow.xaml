@@ -22,11 +22,12 @@
       <Button x:Name="SaveImageButton" Grid.Column="1" Content="另存镜像" Click="SaveImage_Click" Style="{StaticResource AccentButtonStyle}" VerticalAlignment="Center" IsEnabled="False" AutomationProperties.AutomationId="SaveImage"/>
     </Grid>
     <Grid Grid.Row="2" ColumnSpacing="8">
-      <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+      <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
       <Button x:Name="OpenButton" Click="Open_Click" Content="打开镜像…" AutomationProperties.AutomationId="OpenImage"/>
       <Button x:Name="ResumeButton" Grid.Column="1" Click="Resume_Click" Content="恢复编辑会话…"/>
       <Button x:Name="CreateButton" Grid.Column="2" Click="Create_Click" Content="新建镜像…"/>
-      <TextBlock x:Name="EngineStatus" Grid.Column="3" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="正在检查依赖…"/>
+      <Button x:Name="DevicesButton" Grid.Column="3" Click="Devices_Click" Content="本机磁盘（只读）…" AutomationProperties.AutomationId="HostDevices"/>
+      <TextBlock x:Name="EngineStatus" Grid.Column="4" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="正在检查依赖…"/>
     </Grid>
     <InfoBar x:Name="Notice" Grid.Row="3" IsOpen="False" Severity="Error" IsClosable="True"/>
     <Grid Grid.Row="4" ColumnSpacing="20">

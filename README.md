@@ -166,3 +166,5 @@ Windows 原生验证：
 Python 验证脚本在 Linux 运行，还需要 `dosfstools`、`mtools`、`e2fsprogs`、`ntfs-3g`、`exfatprogs`。`filesystems_validate.py` 用独立工具生成 Windows 验证所需的 fixtures；目录必须为新路径。Windows 保存的镜像可通过 `scripts/check_windows_exports.py` 在 Linux 独立检查。普通单元测试不需要 QEMU；标记 ignored 的集成测试必须显式运行，不能将跳过视为通过。
 
 详细结论见 [P0 报告](docs/P0.md)，接口见 [协议说明](docs/PROTOCOL.md)，实现与未完成事项见 [架构说明](docs/ARCHITECTURE.md)。原有 Apache-2.0 许可证保持不变；QEMU 与 GPL NTFS 工作进程作为独立程序，分发时需保留各自声明和对应源码材料。
+
+本机设备：Windows/Linux 现支持只读磁盘、分区枚举和保护原因，Windows GUI 可从“本机磁盘（只读）”进入。CLI 使用 `xetch device list` / `xetch device inspect <id>`，不需要 QEMU。真实设备写回仍关闭；[D0/D1 实现与验收](docs/HOST-DEVICES.md)。

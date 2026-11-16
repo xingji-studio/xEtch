@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "platform": "native Windows x64",
+  "test_only": true,
+  "checks": [
+    "read_only_devices_available",
+    "production_device_write_disabled",
+    "read_only_browser_has_no_write_action",
+    "device_browser_does_not_change_image_session",
+    "system_and_boot_protection_visible",
+    "gui_cannot_bypass_production_guard",
+    "test_device_lease_held_before_preview",
+    "confirmation_defaults_to_cancel",
+    "empty_phrase_disables_write",
+    "wrong_phrase_disables_write",
+    "dismissal_does_not_authorize",
+    "cancelled_dialog_zero_writes",
+    "dialog_timeout_cancels",
+    "timed_out_dialog_zero_writes",
+    "exact_phrase_enables_write",
+    "actual_primary_button_event_accepts_plan",
+    "confirmed_test_write_commits",
+    "gui_commit_full_partition_hash_matches",
+    "gui_consent_is_single_use"
+  ],
+  "error": null,
+  "limits": [
+    "Actual WinUI dialog and automation-peer button event; physical keyboard/picker/accessibility not exercised.",
+    "GUI timeout display uses a shortened copied preview; actual backend expiration is separately tested by the native controller."
+  ]
+}

@@ -29,6 +29,9 @@ def validate_posix(package, directory):
     capabilities = cli("doctor")
     assert all(t["available"] for t in capabilities["tools"])
     assert capabilities["capabilities"]["ntfs_write"] == manifest["ntfs_worker"]
+    devices = cli("device", "list")
+    assert devices["read_only"] and not devices["write_enabled"]
+    assert all(not node["protection"]["write_allowed"] for node in devices["devices"])
     no_gui = subprocess.run([str(binary)], cwd=directory, env=env, capture_output=True, timeout=10)
     assert no_gui.returncode == 4 and b"GUI was not found" in no_gui.stderr
     rpc = subprocess.run([str(binary), "serve", "--stdio"], cwd=directory, env=env,
@@ -75,7 +78,7 @@ def validate_posix(package, directory):
         assert sentinel.read_bytes() == b"keep personal data"
     finally: sentinel.unlink()
     return {"schema_version":1, "status":"pass", "platform":manifest["platform"], "checks":[
-        "relocated_unicode_and_space_path", "empty_PATH_no_development_overrides", "bundled_qemu_and_ntfs",
+        "relocated_read_only_devices_without_development_environment", "relocated_unicode_and_space_path", "empty_PATH_no_development_overrides", "bundled_qemu_and_ntfs",
         "create_ext4_and_edit_workspace", "vmdk_export_and_readback", "runtime_check_without_python",
         "missing_dependency_is_reported", "package_replacement_preserves_personal_files",
         "backend_only_no_args_reports_missing_gui", "stdio_rpc_does_not_launch_frontend", *(["bundled_bsd_ext4_worker_selected_without_PATH", "missing_bsd_ext4_worker_reported"] if manifest.get("ext4_worker") else [])]}

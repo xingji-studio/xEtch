@@ -113,8 +113,47 @@ pub fn command(args: &[OsString]) -> Result<Vec<u8>> {
     Ok(output.stdout)
 }
 
+// Windows can expose raw storage through DOS/NT aliases. Reject those aliases
+// before metadata/QEMU so regular-image APIs never become a device entrypoint.
+#[cfg(any(windows, test))]
+fn windows_device_namespace(path: &Path) -> bool {
+    let value = path
+        .as_os_str()
+        .to_string_lossy()
+        .replace('/', "\\")
+        .to_ascii_lowercase();
+    if [r"\\.\", r"\\?\globalroot\", r"\device\", r"\??\"]
+        .iter()
+        .any(|p| value.starts_with(p))
+    {
+        return true;
+    }
+    if let Some(rest) = value.strip_prefix(r"\\?\") {
+        if rest.starts_with("physicaldrive") {
+            return true;
+        }
+        if rest.starts_with("volume{") {
+            return rest
+                .find('}')
+                .is_none_or(|i| rest[i + 1..].trim_matches('\\').is_empty());
+        }
+    }
+    false
+}
+
 pub fn regular(path: &Path) -> Result<PathBuf> {
+    #[cfg(windows)]
+    if windows_device_namespace(path) {
+        return Err(Error::Invalid("raw device namespaces are not accepted by image operations; use read-only device discovery".into()));
+    }
     let path = fs::canonicalize(path)?;
+    #[cfg(windows)]
+    if windows_device_namespace(&path) {
+        return Err(Error::Invalid(
+            "image path resolves to a raw device namespace".into(),
+        ));
+    }
+
     if !fs::metadata(&path)?.is_file() {
         return Err(Error::Invalid(
             "only regular disk-image files are supported".into(),
@@ -207,7 +246,8 @@ pub fn doctor() -> Value {
         "ntfs_write": ntfs, "ntfs_engine": if ntfs {"ntfs-3g 2026.9.28"}else{"unavailable"},
         "filesystem_detect_only": [],
         "partition_tables_read": ["MBR-primary", "GPT"], "sector_size": 512,
-        "in_place_write": false, "physical_disks": false, "rpc_jobs": false}})
+        "in_place_write": false, "physical_disks": false, "physical_disk_discovery": cfg!(any(windows, target_os="linux")),
+        "physical_disk_write": false, "physical_disk_methods": if cfg!(any(windows,target_os="linux")){vec!["device.list","device.inspect"]}else{Vec::<&str>::new()}, "rpc_jobs": false}})
 }
 
 #[cfg(test)]
@@ -221,5 +261,39 @@ mod tests {
             serde_json::from_str::<serde_json::Value>(&encoded).unwrap(),
             value
         );
+    }
+    #[test]
+    fn raw_windows_aliases_are_distinct_from_regular_image_paths() {
+        for value in [
+            r"\\.\PhysicalDrive0",
+            r"\\.\C:",
+            r"\\?\GLOBALROOT\Device\Harddisk0\Partition1",
+            r"\\?\PhysicalDrive0",
+            r"\Device\Harddisk0\Partition1",
+            r"\??\C:",
+            r"\\?\Volume{00000000-0000-0000-0000-000000000001}",
+            r"\\?\Volume{00000000-0000-0000-0000-000000000001}\",
+        ] {
+            assert!(
+                super::windows_device_namespace(std::path::Path::new(value)),
+                "{value}"
+            );
+            #[cfg(windows)]
+            assert!(matches!(
+                super::regular(std::path::Path::new(value)),
+                Err(crate::Error::Invalid(_))
+            ));
+        }
+        for value in [
+            r"C:\images\disk.img",
+            r"\\?\C:\images\disk.img",
+            r"\\server\share\disk.img",
+            r"\\?\Volume{00000000-0000-0000-0000-000000000001}\images\disk.img",
+        ] {
+            assert!(
+                !super::windows_device_namespace(std::path::Path::new(value)),
+                "{value}"
+            );
+        }
     }
 }

@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "platform": "Linux x64",
+  "host": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.35",
+  "backend_sha256": "d2a80671dfe6ed2fb09b974eea9f37adecfeeafc702a38a14edadfbada7111df",
+  "cases": [],
+  "limits": [
+    "No real physical disk writes; only newly factory-created 128 MiB loop/VHD images.",
+    "Injected returned failures and killed helper processes do not emulate actual hardware power loss.",
+    "Recovery journals are on the host filesystem, outside the virtual disk; different real physical failure domains are not verified.",
+    "Physical device editing remains disabled in the production backend.",
+    "GUI controller tests do not substitute for keyboard, picker and accessibility acceptance."
+  ],
+  "inventory": {
+    "status": "pass",
+    "devices": 4,
+    "hard_protected": 2,
+    "roles": [
+      "runtime",
+      "swap",
+      "system"
+    ],
+    "warnings": [
+      "runtime storage is outside the visible block-device topology",
+      "workspace storage is outside the visible block-device topology",
+      "Only the current Linux mount namespace is observed; other namespaces, holders and open handles require the later exclusive-access helper."
+    ],
+    "checks": [
+      "live_native_inventory_without_qemu",
+      "current_system_backing_protected",
+      "all_physical_writes_disabled",
+      "inspect_uses_current_id",
+      "forged_rpc_and_force_rejected",
+      "validation_api_not_exposed"
+    ]
+  },
+  "cleanup": {
+    "active_owned_devices": 0
+  },
+  "finished_at_unix": 1794834473.730804
+}

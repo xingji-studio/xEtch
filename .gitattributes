@@ -10,3 +10,5 @@
 /docs/lwext4-*-results.json text eol=lf
 
 /scripts/build_ext4_worker.py text eol=lf
+
+/crates/xetch-core/src/devices/windows_inventory.ps1 text eol=lf
