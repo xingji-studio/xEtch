@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "platform": "native Windows x64",
+  "framework": "WinUI 3 / .NET 8",
+  "filesystem": "ext4",
+  "created_image": true,
+  "table": "gpt",
+  "checks": [
+    "native_window_loaded_and_dependencies_ready",
+    "new_experimental_filesystems_hidden_until_opt_in",
+    "new_filesystem_available_in_same_form_as_create_dialog",
+    "gui_created_image_and_opened_editing_session",
+    "expected_partition_presented",
+    "experimental_filesystem_initially_read_only",
+    "experimental_toggle_enables_filesystem_edits",
+    "import_refreshes_visible_file_list",
+    "client_file_export_bytes_match",
+    "persistent_session_resume_restores_view",
+    "gui_edit_and_export_completed_without_error",
+    "controls_reenabled_after_async_work",
+    "rename_action_available_for_selected_regular_file",
+    "backend_error_is_visible_in_infobar",
+    "failed_gui_edit_does_not_advance_checkpoint",
+    "gui_recovers_after_rejected_operation",
+    "source_image_unchanged_after_gui_edits",
+    "native_winui_visual_tree_rendered_to_png",
+    "independent_e2fsck_clean_extracted_gpt_volume",
+    "independent_debugfs_payload_matches"
+  ],
+  "error": null,
+  "source_unchanged": true,
+  "limits": [
+    "Controller integration and actual XAML rendering; picker and input automation not exercised"
+  ],
+  "engine": "lwext4",
+  "profile": "bsd-xattr-acl-v1",
+  "checked_partition": {
+    "filesystem": "ext4",
+    "index": 1,
+    "name": "xEtch",
+    "offset": 1048576,
+    "size": 66043392
+  },
+  "payload_sha256": "b740eaaeef346f60f4e404238ab51ba2daf09da25188efdc1509f16363b0f0d0",
+  "backend_sha256": "d492766638a4739bdacb65af6de16c2dc0d71b16b19ed8cac688209090c09a49",
+  "worker_sha256": "409e744e3d82c359be6b17ce559e7c9b17f01eed95076e142505ec248f64b711",
+  "production_gui_dll_sha256": "67ba7223ae7dab8f9470f70886d6c27c658f5bba3b7dc2aa686a13390918bf2b",
+  "integration_gui_dll_sha256": "0153a8ca56376690d76d1272dd508bf37d30a2d74e328997cf32bb4d4b7d6569"
+}

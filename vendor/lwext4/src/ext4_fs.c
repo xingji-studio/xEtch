@@ -682,7 +682,8 @@ static uint32_t ext4_fs_inode_checksum(struct ext4_inode_ref *inode_ref)
 
 		/* If inode size is not large enough to hold the
 		 * upper 16bit of the checksum */
-		if (inode_size == EXT4_GOOD_OLD_INODE_SIZE)
+		if (inode_size < EXT4_GOOD_OLD_INODE_SIZE + 4 ||
+		    to_le16(inode_ref->inode->extra_isize) < 4)
 			checksum &= 0xFFFF;
 
 	}
@@ -793,6 +794,12 @@ int ext4_fs_put_inode_ref(struct ext4_inode_ref *ref)
 {
 	/* Check if reference modified */
 	if (ref->dirty) {
+		/* LARGE_FILE is required once a regular file exceeds signed 32-bit size. */
+		if (ext4_inode_is_type(&ref->fs->sb, ref->inode, EXT4_INODE_MODE_FILE) &&
+		    ext4_inode_get_size(&ref->fs->sb, ref->inode) > INT32_MAX) {
+			uint32_t features = ext4_get32(&ref->fs->sb, features_read_only);
+			ext4_set32(&ref->fs->sb, features_read_only, features | EXT4_FRO_COM_LARGE_FILE);
+		}
 		/* Mark block dirty for writing changes to physical device */
 		ext4_fs_set_inode_checksum(ref);
 		ext4_trans_set_block_dirty(ref->block.buf);
@@ -1048,16 +1055,16 @@ finish:
 	/* Mark inode dirty for writing to the physical device */
 	inode_ref->dirty = true;
 
-	/* Free block with extended attributes if present */
-	ext4_fsblk_t xattr_block =
-	    ext4_inode_get_file_acl(inode_ref->inode, &fs->sb);
-	if (xattr_block) {
-		int rc = ext4_balloc_free_block(inode_ref, xattr_block);
-		if (rc != EOK)
-			return rc;
-
-		ext4_inode_set_file_acl(inode_ref->inode, &fs->sb, 0);
-	}
+	/* The BSD replacement preserves shared xattr block reference counts. */
+#if CONFIG_XATTR_ENABLE
+	extern int xetch_xattr_release(struct ext4_inode_ref *);
+	rc = xetch_xattr_release(inode_ref);
+	if (rc != EOK)
+		return rc;
+#else
+	if (ext4_inode_get_file_acl(inode_ref->inode, &fs->sb))
+		return ENOTSUP;
+#endif
 
 	/* Free inode by allocator */
 	if (ext4_inode_is_type(&fs->sb, inode_ref->inode,

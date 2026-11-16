@@ -8,3 +8,5 @@
 /vendor/lwext4-xetch.patch text eol=lf
 /native/ext4-worker/** text eol=lf
 /docs/lwext4-*-results.json text eol=lf
+
+/scripts/build_ext4_worker.py text eol=lf

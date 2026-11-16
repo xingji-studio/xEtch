@@ -86,7 +86,7 @@ pub fn check_clean(dev: &mut dyn BlockDevice, name: &str) -> Result<()> {
 }
 
 /// Share admission policy with the P0 engine; filesystem mutations themselves
-/// are performed by lwext4. Excluded xattr semantics must never be silently lost.
+/// are performed by lwext4, including the independent BSD xattr/ACL adapters.
 pub(crate) fn worker_preflight(
     dev: &mut dyn BlockDevice,
     write: bool,
@@ -99,6 +99,13 @@ pub(crate) fn worker_preflight(
         return Ok(());
     }
     ext.check_writable().map_err(map_error)?;
+    let mut creator = [0; 4];
+    dev.read_at(1024 + 72, &mut creator).map_err(map_error)?;
+    if creator != [0; 4] {
+        return Err(Error::Unsupported(
+            "BSD ext4 writes require the Linux inode layout".into(),
+        ));
+    }
     for path in paths {
         if path.split('/').any(|part| part.len() > 255) {
             return Err(Error::Invalid(
@@ -109,9 +116,8 @@ pub(crate) fn worker_preflight(
         let mut inode = 2;
         let parts: Vec<_> = path.split('/').filter(|p| !p.is_empty()).collect();
         for step in 0..=parts.len() {
-            if !ext.read_xattrs(dev, inode).map_err(map_error)?.is_empty() {
-                return Err(Error::Unsupported("lwext4 BSD P0 protects paths with xattrs or default ACLs; use the fstool engine".into()));
-            }
+            // Validate existing attribute structures/checksums before mutations.
+            ext.read_xattrs(dev, inode).map_err(map_error)?;
             if step == parts.len() {
                 break;
             }

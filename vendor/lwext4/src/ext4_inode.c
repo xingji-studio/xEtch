@@ -87,12 +87,13 @@ void ext4_inode_set_mode(struct ext4_sblock *sb, struct ext4_inode *inode,
 
 uint32_t ext4_inode_get_uid(struct ext4_inode *inode)
 {
-	return to_le32(inode->uid);
+	return to_le16(inode->uid) | ((uint32_t)to_le16(inode->osd2.linux2.uid_high) << 16);
 }
 
 void ext4_inode_set_uid(struct ext4_inode *inode, uint32_t uid)
 {
-	inode->uid = to_le32(uid);
+	inode->uid = to_le16((uint16_t)uid);
+	inode->osd2.linux2.uid_high = to_le16((uint16_t)(uid >> 16));
 }
 
 uint64_t ext4_inode_get_size(struct ext4_sblock *sb, struct ext4_inode *inode)
@@ -117,7 +118,8 @@ uint32_t ext4_inode_get_csum(struct ext4_sblock *sb, struct ext4_inode *inode)
 	uint16_t inode_size = ext4_get16(sb, inode_size);
 	uint32_t v = to_le16(inode->osd2.linux2.checksum_lo);
 
-	if (inode_size > EXT4_GOOD_OLD_INODE_SIZE)
+	if (inode_size >= EXT4_GOOD_OLD_INODE_SIZE + 4 &&
+	    to_le16(inode->extra_isize) >= 4)
 		v |= ((uint32_t)to_le16(inode->checksum_hi)) << 16;
 
 	return v;
@@ -130,7 +132,8 @@ void ext4_inode_set_csum(struct ext4_sblock *sb, struct ext4_inode *inode,
 	inode->osd2.linux2.checksum_lo =
 		to_le16((checksum << 16) >> 16);
 
-	if (inode_size > EXT4_GOOD_OLD_INODE_SIZE)
+	if (inode_size >= EXT4_GOOD_OLD_INODE_SIZE + 4 &&
+	    to_le16(inode->extra_isize) >= 4)
 		inode->checksum_hi = to_le16(checksum >> 16);
 
 }
@@ -175,11 +178,12 @@ void ext4_inode_set_del_time(struct ext4_inode *inode, uint32_t time)
 
 uint32_t ext4_inode_get_gid(struct ext4_inode *inode)
 {
-	return to_le32(inode->gid);
+	return to_le16(inode->gid) | ((uint32_t)to_le16(inode->osd2.linux2.gid_high) << 16);
 }
 void ext4_inode_set_gid(struct ext4_inode *inode, uint32_t gid)
 {
-	inode->gid = to_le32(gid);
+	inode->gid = to_le16((uint16_t)gid);
+	inode->osd2.linux2.gid_high = to_le16((uint16_t)(gid >> 16));
 }
 
 uint16_t ext4_inode_get_links_cnt(struct ext4_inode *inode)

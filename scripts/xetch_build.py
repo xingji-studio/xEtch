@@ -69,6 +69,7 @@ class Config:
     profile: str
     ntfs: str
     offline: bool
+    ext4: str = "auto"
 
     @property
     def windows(self):
@@ -93,8 +94,8 @@ class Config:
 
 
 def validate(config):
-    if config.components not in ("backend", "frontend", "all") or config.profile not in ("release", "debug") or config.ntfs not in ("auto", "on", "off"):
-        raise RuntimeError("Invalid XETCH_COMPONENTS, XETCH_PROFILE or XETCH_NTFS; see ./xetch --help.")
+    if config.components not in ("backend", "frontend", "all") or config.profile not in ("release", "debug") or config.ntfs not in ("auto", "on", "off") or config.ext4 not in ("auto", "on", "off"):
+        raise RuntimeError("Invalid XETCH_COMPONENTS, XETCH_PROFILE, XETCH_NTFS or XETCH_EXT4; see ./xetch --help.")
     if config.platform not in ("windows", "linux", "macos") or config.arch not in ("x64", "arm64"):
         raise RuntimeError("Supported platforms: windows/linux/macos; architectures: x64/arm64.")
     if config.gui and (not config.windows or config.arch != "x64"):
@@ -161,7 +162,19 @@ def worker_sources_match(directory):
             if file.is_file() and file.read_bytes() != (source / file.relative_to(ROOT)).read_bytes():
                 return False
         return (ROOT / "scripts/build_ntfs_worker.py").read_bytes() == (source / "scripts/build_ntfs_worker.py").read_bytes()
-    except (OSError, ValueError, KeyError):
+    except (OSError, ValueError, KeyError, TypeError):
+        return False
+
+
+
+def worker_starts(binary, engine):
+    try:
+        result = subprocess.run([str(binary), "--version"], capture_output=True, timeout=15)
+        if result.returncode != 0: return False
+        body = json.loads(result.stdout)
+        if not isinstance(body, dict): return False
+        return body.get("engine") == engine and body.get("protocol") == 1
+    except (OSError, ValueError, subprocess.TimeoutExpired):
         return False
 
 
@@ -177,7 +190,7 @@ def include_worker(config):
     candidates = [destination, cargo_target(config) / config.profile,
                   ROOT / ("target/windows/release" if config.windows else "target/release")]
     for directory in candidates:
-        if (directory / name).is_file() and worker_sources_match(directory) and (config.platform, config.arch) in binary_targets(directory / name):
+        if (directory / name).is_file() and worker_sources_match(directory) and (config.platform, config.arch) in binary_targets(directory / name) and worker_starts(directory / name, "ntfs-3g"):
             profile = json.loads((directory / "ntfs-worker-profile.json").read_text())
             if (profile["target"] == "windows") != config.windows:
                 continue
@@ -210,6 +223,81 @@ def include_worker(config):
     return False
 
 
+
+def ext4_sources_match(directory):
+    """Bind the BSD worker to its complete pinned source/header/build inputs."""
+    try:
+        profile = json.loads((directory / "ext4-worker-profile.json").read_text())
+        binary = directory / ("xetch-ext4-worker.exe" if profile["target"] == "windows" else "xetch-ext4-worker")
+        if profile["profile"] != "bsd-xattr-acl-v1" or profile["worker_sha256"] != digest(binary):
+            return False
+        expected = {"scripts/build_ext4_worker.py", "vendor/lwext4-origin.json", "vendor/lwext4-xetch.patch"}
+        inventory = json.loads((ROOT / "vendor/lwext4-origin.json").read_text())
+        actual = {p.relative_to(ROOT / "vendor/lwext4").as_posix() for p in (ROOT / "vendor/lwext4").rglob("*") if p.suffix in (".c", ".h")}
+        if actual != {item["path"] for item in inventory["files"]}:
+            return False
+        expected.update("vendor/lwext4/"+item["path"] for item in inventory["files"])
+        expected.update("native/ext4-worker/"+name for name in ("extents.c", "xattrs.c", "acls.c", "worker.c", "LICENSE"))
+        recorded = {item["path"]: item["sha256"] for item in profile["source_inputs"]}
+        if set(recorded) != expected or any(digest(ROOT / name) != value for name,value in recorded.items()):
+            return False
+        notices = directory / "ext4-worker-licenses"
+        expected_notices = {"xetch-ext4-worker-BSD-3-Clause.txt", "lwext4-file-notices.txt"}
+        return set(profile["license_files"]) == expected_notices and all(digest(notices/name)==profile["license_files"][name] for name in expected_notices)
+    except (OSError, ValueError, KeyError, TypeError):
+        return False
+
+
+def include_ext4_worker(config):
+    destination = config.directory / "backend"
+    name = "xetch-ext4-worker.exe" if config.windows else "xetch-ext4-worker"
+    def clear():
+        for filename in (name,"ext4-worker-profile.json"):
+            (destination / filename).unlink(missing_ok=True)
+        if (destination / "ext4-worker-licenses").is_dir():
+            shutil.rmtree(destination / "ext4-worker-licenses")
+    if config.ext4 == "off":
+        clear();return False
+    candidates = [destination, cargo_target(config) / config.profile,
+                  ROOT / ("target/windows/release" if config.windows else "target/release")]
+    for folder in candidates:
+        if (folder / name).is_file() and ext4_sources_match(folder) and (config.platform,config.arch) in binary_targets(folder/name) and worker_starts(folder/name,"lwext4"):
+            if folder != destination:
+                clear()
+                for filename in (name,"ext4-worker-profile.json"):
+                    shutil.copy2(folder/filename,destination/filename)
+                shutil.copytree(folder/"ext4-worker-licenses",destination/"ext4-worker-licenses")
+            print("[OK] Reused BSD ext4 worker with matching source/header/license hashes",flush=True)
+            return True
+    clear()
+    if config.windows and config.arch != "x64" and not os.environ.get("XETCH_EXT4_CC"):
+        if config.ext4 == "on":
+            raise RuntimeError("Windows ARM64 ext4 requires a matching prebuilt worker or an explicit XETCH_EXT4_CC; the default MinGW builder targets x64.")
+        print("[NOTE] No matching Windows ARM64 BSD ext4 worker; default fstool remains available.",flush=True)
+        return False
+    compiler = os.environ.get("XETCH_EXT4_CC") or ("x86_64-w64-mingw32-gcc" if config.windows else os.environ.get("CC","cc"))
+    if shutil.which(compiler):
+        argv=[sys.executable,ROOT/"scripts/build_ext4_worker.py","--output",destination]
+        if config.windows:argv += ["--target","windows"]
+        run(argv)
+        if (config.platform,config.arch) not in binary_targets(destination/name) or not worker_starts(destination/name,"lwext4"):
+            clear();raise RuntimeError("ext4 compiler produced an unusable OS/CPU/runtime target; correct XETCH_EXT4_CC.")
+        return True
+    if config.windows and os.name == "nt" and shutil.which("wsl.exe"):
+        found=subprocess.run(["wsl.exe","--exec","which","x86_64-w64-mingw32-gcc"],capture_output=True)
+        if found.returncode == 0:
+            source=run(["wsl.exe","--exec","wslpath","-u",ROOT],capture=True)
+            output=run(["wsl.exe","--exec","wslpath","-u",destination],capture=True)
+            run(["wsl.exe","--exec","python3",source+"/scripts/build_ext4_worker.py","--target","windows","--output",output])
+            if (config.platform,config.arch) not in binary_targets(destination/name) or not worker_starts(destination/name,"lwext4"):
+                clear();raise RuntimeError("WSL ext4 compiler did not produce a runnable target for this OS/CPU.")
+            return True
+    if config.ext4 == "on":
+        raise RuntimeError("BSD ext4 worker requires a matching prebuilt worker or a GNU-compatible C compiler (MinGW for Windows). Build it in WSL with scripts/build_ext4_worker.py --target windows, or use XETCH_EXT4=auto/off.")
+    print("[NOTE] Optional BSD ext4 worker unavailable; the existing fstool ext4 engine remains usable.",flush=True)
+    return False
+
+
 def build(config):
     print(f"Building {config.platform}/{config.arch} {config.components} ({config.profile})", flush=True)
     config.directory.mkdir(parents=True, exist_ok=True)
@@ -228,8 +316,10 @@ def build(config):
         backend.mkdir(exist_ok=True)
         shutil.copy2(cargo_target(config) / config.profile / "xetch", backend / "xetch")
     worker = include_worker(config) if config.backend else False
+    ext4_worker = include_ext4_worker(config) if config.backend else False
     record = {"format_version": 1, "platform": config.platform, "arch": config.arch, "profile": config.profile,
-              "components": config.components, "ntfs_policy": config.ntfs, "ntfs_worker": worker, "gui_self_contained": config.gui}
+              "components": config.components, "ntfs_policy": config.ntfs, "ntfs_worker": worker,
+              "ext4_policy": config.ext4, "ext4_worker": ext4_worker, "gui_self_contained": config.gui}
     (config.directory / "build.json").write_text(json.dumps(record, indent=2)+"\n")
     print(f"[OK] Build: {config.directory}", flush=True)
     return record
@@ -344,18 +434,24 @@ def ensure_replaceable(destination):
 
 
 def package(config, record, destination):
+    if not isinstance(record, dict):
+        raise RuntimeError("Invalid build record; rebuild before packaging.")
     if not config.backend:
         raise RuntimeError("A runnable package requires the backend. Use XETCH_COMPONENTS=all or backend.")
-    expected = (config.platform, config.arch, config.profile, config.components, config.ntfs)
-    if tuple(record.get(k) for k in ("platform", "arch", "profile", "components", "ntfs_policy")) != expected:
+    expected = (config.platform, config.arch, config.profile, config.components, config.ntfs, config.ext4)
+    if tuple(record.get(k) for k in ("platform", "arch", "profile", "components", "ntfs_policy", "ext4_policy")) != expected:
         raise RuntimeError("Existing build does not match this selection; omit --no-build.")
     if destination.is_relative_to(config.directory) or config.directory.is_relative_to(destination):
         raise RuntimeError("Choose a package directory outside the build output, such as dist/xetch-<platform>-<arch>.")
+    if record.get("ext4_worker") and not ext4_sources_match(config.directory / "backend"):
+        raise RuntimeError("BSD ext4 worker/source changed after build; rebuild before packaging.")
     ensure_replaceable(destination)
     destination.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix=".xetch-package-", dir=destination.parent))
     try:
-        shutil.copytree(config.directory / "backend", staging, dirs_exist_ok=True)
+        backend = config.directory / "backend"
+        shutil.copytree(backend, staging, dirs_exist_ok=True,
+                        ignore=lambda directory,names: {"examples"} if Path(directory)==backend else set())
         if config.gui:
             shutil.copytree(config.directory / "gui", staging / "gui")
             if not all((staging / "gui" / f).is_file() for f in ("xEtch.Windows.exe", "xEtch.Windows.pri", "coreclr.dll", "hostfxr.dll")):
@@ -415,16 +511,18 @@ def doctor(config):
     except RuntimeError as error:
         print(f"[NOTE] {error} This does not prevent compiling; packaging requires QEMU.")
     print(f"[INFO] NTFS worker policy: {config.ntfs} (optional by default)")
+    print(f"[INFO] BSD ext4 worker policy: {config.ext4}; select at runtime with XETCH_EXT4_ENGINE=lwext4")
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description=__doc__, epilog="Environment: XETCH_PLATFORM, XETCH_ARCH, XETCH_COMPONENTS, XETCH_PROFILE, XETCH_NTFS=auto|on|off, XETCH_OFFLINE=1, XETCH_QEMU_DIR.")
+    parser = argparse.ArgumentParser(description=__doc__, epilog="Environment: XETCH_PLATFORM, XETCH_ARCH, XETCH_COMPONENTS, XETCH_PROFILE, XETCH_NTFS=auto|on|off, XETCH_EXT4=auto|on|off, XETCH_OFFLINE=1, XETCH_QEMU_DIR.")
     parser.add_argument("action", choices=["build", "package", "doctor"])
     parser.add_argument("--platform", default=os.environ.get("XETCH_PLATFORM", host_platform()))
     parser.add_argument("--arch", default=os.environ.get("XETCH_ARCH", host_arch()))
     parser.add_argument("--components", choices=["auto", "backend", "frontend", "all"], default=os.environ.get("XETCH_COMPONENTS", "auto"))
     parser.add_argument("--profile", choices=["release", "debug"], default=os.environ.get("XETCH_PROFILE", "release"))
     parser.add_argument("--ntfs", choices=["auto", "on", "off"], default=os.environ.get("XETCH_NTFS", "auto"))
+    parser.add_argument("--ext4", choices=["auto", "on", "off"], default=os.environ.get("XETCH_EXT4", "auto"))
     parser.add_argument("--offline", action="store_true", default=os.environ.get("XETCH_OFFLINE") == "1")
     parser.add_argument("--no-build", action="store_true", help="Package a successful previous build with exactly this selection")
     parser.add_argument("--output", type=Path, help="Package folder (default dist/xetch-<platform>-<arch>)")
@@ -433,7 +531,7 @@ def main(argv=None):
     target = PLATFORMS.get(args.platform.lower(), args.platform.lower())
     arch = ARCHES.get(args.arch.lower(), args.arch.lower())
     components = args.components if args.components != "auto" else "all" if target == "windows" and arch == "x64" else "backend"
-    config = Config(target, arch, components, args.profile, args.ntfs, args.offline)
+    config = Config(target, arch, components, args.profile, args.ntfs, args.offline, args.ext4)
     try:
         validate(config)
         if args.action == "doctor": doctor(config)

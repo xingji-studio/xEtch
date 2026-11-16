@@ -26,10 +26,20 @@ own implementation as Apache-2.0. No proprietary XJ380 source, Apache driver
 implementation or upstream GPL implementation is copied into this worker.
 This is a format-based implementation, not a claim of a formal clean-room process.
 
-`xattr_disabled.c` supplies explicit unsupported adapters. The parent rejects
-mutations involving xattrs/default ACLs along the affected paths before invoking
-the worker; it does not silently discard attributes. The existing fstool engine
-retains its previous functionality and remains the default.
+`xattrs.c` independently implements inline/external attribute parsing, get/set/list/
+remove, empty/binary values, canonical external hashing, block checksums and
+copy-on-write/reference release for shared blocks. It accepts legacy signed and
+modern unsigned name hashes, writes the modern unsigned form, and preserves
+unknown stored indices. `acls.c` validates POSIX ACL v1 disk entries and filters
+default ACLs by creation mode; directories also inherit their parent's default
+ACL and setgid group. Existing file replacement and rename preserve inode
+identity, owners, hardlinks, ACLs and attributes.
+
+This implements the traditional inode-plus-one-block xattr layout. EA_INODE,
+RichACL inheritance and encrypted/verity/security-policy execution are outside
+this implementation. Attributes are bounded to 256 entries and one external
+block; unsupported volume features and invalid metadata fail explicitly.
+The existing fstool engine remains the default.
 
 Build on Linux/WSL with `python3 scripts/build_ext4_worker.py`; add
 `--target windows` for the statically linked MinGW Windows executable. The build
@@ -44,6 +54,11 @@ length and optional bytes. H identifies the worker PID, D streams downloads,
 J returns final JSON only after unmount/flush, and E returns a typed error.
 The parent rejects unexpected, oversized, out-of-range or read-only writes.
 Each successful W acknowledgment includes an NBD FLUSH; C cache writeback alone
-is not treated as storage durability. The public CLI and JSON-RPC stay unchanged.
+is not treated as storage durability. The greeting requires the `bsd-xattr-acl-v1` profile and xattr/ACL capability
+bits before any block I/O; older workers are refused. The public CLI and
+JSON-RPC stay unchanged.
 
-See [the P0 validation report](../../docs/LWEXT4-P0.md) for scope and evidence.
+`--with-probe` also builds a regular-image xattr API test helper under `examples/`;
+it is excluded from application packages.
+
+See [the current report](../../docs/LWEXT4.md) for scope and evidence.

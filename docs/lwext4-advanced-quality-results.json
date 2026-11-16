@@ -1,0 +1,511 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "completed_at": "2026-11-16T11:56:35.426399+00:00",
+  "scope": "Independent BSD xattrs/POSIX ACL, large-file correctness, native Windows/Linux backend validation, and one-click build/package integration. Physical partition feature remains design only.",
+  "platforms": {
+    "linux": {
+      "status": "pass",
+      "rust_workspace_all_features_include_ignored": {
+        "passed": 32,
+        "failed": 0,
+        "ignored": 0,
+        "log": "artifacts/lwext4-v1-quality-linux.log",
+        "log_sha256": "8d9ff426d14dc0e2b716069ea69e3b220955c191d1752e64c1382c3aa35f5a5e"
+      },
+      "clippy_all_targets_all_features_deny_warnings": {
+        "status": "pass",
+        "evidence": "artifacts/lwext4-v1-clippy-linux.log"
+      },
+      "final_worker_integration_rerun": {
+        "passed": 2,
+        "failed": 0,
+        "ignored": 0,
+        "log": "artifacts/lwext4-v3-worker-tests-linux.log",
+        "log_sha256": "7262911c0919c5b7baea2420224b2f155f391df63771f66253260c200781a732",
+        "note": "These are repeated integration tests, not additional unique workspace tests."
+      },
+      "advanced_results": "docs/lwext4-advanced-linux-results.json",
+      "advanced_summary": {
+        "cases": 23,
+        "check_groups": 330,
+        "random_operations": 2000,
+        "snapshot_kernel_roundtrips": 126,
+        "final_stress_kernel_checks": 2
+      },
+      "control_engine": "fstool",
+      "control_stress_summary": {
+        "cases": 2,
+        "check_groups": 24,
+        "random_operations": 2000,
+        "snapshot_kernel_roundtrips": 126,
+        "final_stress_kernel_checks": 2
+      },
+      "large_file": {
+        "bytes": 4297064585,
+        "sha256": "de0b77b0fa8a6692120e8cfefac14f713495e24ea00559ecf2441d83238df2a9",
+        "status": "pass",
+        "full_payload_readback": true,
+        "kernel_roundtrip": true
+      },
+      "relocated_package_checks": 12,
+      "package_results": "docs/lwext4-package-linux-results.json",
+      "worker_sha256": "49206dd64c98a3910798440ec0ca94058464f6623dc1749300122f97e97c0f9b",
+      "distributed_backend_sha256": "5f3371e11e3c817085ceb04f18a09917fec30951b31100ce2085447cd65c1b79"
+    },
+    "windows": {
+      "status": "pass",
+      "rust_workspace_all_features_include_ignored": {
+        "passed": 30,
+        "failed": 0,
+        "ignored": 0,
+        "log": "artifacts/lwext4-v1-quality-windows.log",
+        "log_sha256": "db2b6eed43f9ed367bb0edb4cf40939debb41de804042171f84a49674c927e7b"
+      },
+      "clippy_all_targets_all_features_deny_warnings": {
+        "status": "pass",
+        "evidence": "artifacts/windows/advanced-fs-quality.ps1 executes Clippy via Invoke-Tool, throws on nonzero exit, and then reaches the completed workspace tests in the cited quality log. Successful Clippy stderr is captured by Invoke-Tool and omitted from its stdout."
+      },
+      "final_worker_integration_rerun": {
+        "passed": 2,
+        "failed": 0,
+        "ignored": 0,
+        "log": "artifacts/lwext4-v3-worker-tests-windows.log",
+        "log_sha256": "9a965f6f90018fba41f5436552d1f591129cd759367be414dffe99eade5755ae",
+        "note": "These are repeated integration tests, not additional unique workspace tests."
+      },
+      "advanced_results": "docs/lwext4-advanced-windows-results.json",
+      "advanced_summary": {
+        "cases": 23,
+        "check_groups": 330,
+        "random_operations": 2000,
+        "snapshot_kernel_roundtrips": 126,
+        "final_stress_kernel_checks": 2
+      },
+      "control_engine": "fstool",
+      "control_stress_summary": {
+        "cases": 2,
+        "check_groups": 24,
+        "random_operations": 2000,
+        "snapshot_kernel_roundtrips": 126,
+        "final_stress_kernel_checks": 2
+      },
+      "large_file": {
+        "bytes": 4297064585,
+        "sha256": "de0b77b0fa8a6692120e8cfefac14f713495e24ea00559ecf2441d83238df2a9",
+        "status": "pass",
+        "full_payload_readback": true,
+        "kernel_roundtrip": true
+      },
+      "relocated_package_checks": 10,
+      "package_results": "docs/lwext4-package-windows-results.json",
+      "worker_sha256": "409e744e3d82c359be6b17ce559e7c9b17f01eed95076e142505ec248f64b711",
+      "distributed_backend_sha256": "d492766638a4739bdacb65af6de16c2dc0d71b16b19ed8cac688209090c09a49"
+    }
+  },
+  "totals": {
+    "unique_rust_test_executions_across_platforms": 62,
+    "final_worker_test_reruns": 4,
+    "lwext4_cases": 46,
+    "lwext4_check_groups": 660,
+    "lwext4_random_operations": 4000,
+    "fstool_control_random_operations": 4000,
+    "total_random_operations": 8000,
+    "stress_snapshot_kernel_roundtrips": 504,
+    "final_stress_kernel_checks": 8,
+    "native_windows_gui_checks": 20,
+    "relocated_package_checks": 22
+  },
+  "native_windows_gui": {
+    "status": "pass",
+    "checks": 20,
+    "results": "docs/lwext4-advanced-windows-gui-results.json"
+  },
+  "source_policy": {
+    "path": "artifacts/lwext4-source-policy-final-results.json",
+    "sha256": "d4166aab0b5895f0abbfa4f7adca4a120d93dc00a60169b820c4aae2400b3112",
+    "result": {
+      "status": "pass",
+      "checks": [
+        {
+          "case": "pinned_inventory_and_no_gpl_compile_inputs",
+          "status": "pass",
+          "files": 47,
+          "bsd_compile_sources": 19
+        },
+        {
+          "case": "changed_source_rejected",
+          "status": "pass"
+        },
+        {
+          "case": "missing_source_rejected",
+          "status": "pass"
+        },
+        {
+          "case": "unexpected_source_rejected",
+          "status": "pass"
+        },
+        {
+          "case": "excluded_gpl_source_rejected",
+          "status": "pass"
+        },
+        {
+          "case": "reviewed_patch_reverses_to_all_47_original_hashes",
+          "status": "pass"
+        }
+      ]
+    }
+  },
+  "build_package_policy": {
+    "path": "artifacts/lwext4-build-gates-results.json",
+    "sha256": "6a5d30a368212960b04bb3f3a8a7bac6cfc7632110ac45a76917108f547140b5",
+    "result": {
+      "status": "pass",
+      "checks": [
+        {
+          "case": "complete_matching_source_header_license_profile",
+          "status": "pass"
+        },
+        {
+          "case": "changed_header_rejected",
+          "status": "pass"
+        },
+        {
+          "case": "changed_own_source_rejected",
+          "status": "pass"
+        },
+        {
+          "case": "changed_license_notice_rejected",
+          "status": "pass"
+        },
+        {
+          "case": "changed_binary_rejected",
+          "status": "pass"
+        },
+        {
+          "case": "stale_profile_rejected",
+          "status": "pass"
+        },
+        {
+          "case": "excluded_source_presence_rejected",
+          "status": "pass"
+        },
+        {
+          "case": "off_removes_component_and_preserves_other_files",
+          "status": "pass"
+        },
+        {
+          "case": "no_build_rejects_changed_component_selection",
+          "status": "pass"
+        },
+        {
+          "case": "invalid_profile_root_type",
+          "status": "pass"
+        },
+        {
+          "case": "invalid_source_input_table_type",
+          "status": "pass"
+        },
+        {
+          "case": "invalid_build_record_type_rejected",
+          "status": "pass"
+        },
+        {
+          "case": "windows_arm64_optional_policy_uses_fstool_without_wrong_cpu_worker",
+          "status": "pass"
+        },
+        {
+          "case": "windows_arm64_on_requires_matching_prebuilt_or_compiler",
+          "status": "pass"
+        }
+      ],
+      "malformed_profile_checks_use_complete_matching_fixture": true
+    }
+  },
+  "native_windows_git_line_endings": {
+    "path": "artifacts/lwext4-line-ending-results.json",
+    "sha256": "33b0d1cbd6fc78c3046e5008fc54bd1c28843929a3ad690e1864b249baf16369",
+    "result": {
+      "status": "pass",
+      "native_git": "Windows",
+      "core_autocrlf": true,
+      "files_verified": 55,
+      "audit_repository_isolated": true
+    }
+  },
+  "windows_executable_identity": {
+    "path": "artifacts/lwext4-windows-executable-identity-results.json",
+    "sha256": "e7467658a62bfc02f063b8cad4045e3557e7a348129983656c56f72c8ac9808b",
+    "result": {
+      "status": "pass",
+      "method": "All bytes compared after normalizing only explicit PE build/debug metadata and the case of a verified-identical Cargo registry source directory embedded in diagnostic paths. Code, constants outside that source prefix, data and relocations remain compared.",
+      "cargo_registry_directory_aliases_verified_same_file": true,
+      "binaries": {
+        "control": {
+          "sha256": "d9bddffcbc3947cfa4c32b326ce39b508028f1b2167f5acfc1c834bafd141309",
+          "executable_identity_sha256": "2f81a1dbe8b9b98389484970328842624382c936d7f8ecae7a644311b8cd15e0",
+          "normalized_metadata": [
+            {
+              "offset": 256,
+              "size": 4,
+              "kind": "COFF build timestamp"
+            },
+            {
+              "offset": 336,
+              "size": 4,
+              "kind": "PE image checksum"
+            },
+            {
+              "offset": 2426164,
+              "size": 4,
+              "kind": "debug directory timestamp"
+            },
+            {
+              "offset": 2426600,
+              "size": 30,
+              "kind": "CodeView PDB identity/age/debug path"
+            },
+            {
+              "offset": 2426192,
+              "size": 4,
+              "kind": "debug directory timestamp"
+            },
+            {
+              "offset": 2426220,
+              "size": 4,
+              "kind": "debug directory timestamp"
+            }
+          ],
+          "cargo_registry_diagnostic_path_case_replacements": 0
+        },
+        "matrix": {
+          "sha256": "031331ba62d49d9b5ae99b4d0deef7734a0ad322dab7d09cc7d795948b9130ac",
+          "executable_identity_sha256": "2f81a1dbe8b9b98389484970328842624382c936d7f8ecae7a644311b8cd15e0",
+          "normalized_metadata": [
+            {
+              "offset": 256,
+              "size": 4,
+              "kind": "COFF build timestamp"
+            },
+            {
+              "offset": 336,
+              "size": 4,
+              "kind": "PE image checksum"
+            },
+            {
+              "offset": 2426164,
+              "size": 4,
+              "kind": "debug directory timestamp"
+            },
+            {
+              "offset": 2426600,
+              "size": 30,
+              "kind": "CodeView PDB identity/age/debug path"
+            },
+            {
+              "offset": 2426192,
+              "size": 4,
+              "kind": "debug directory timestamp"
+            },
+            {
+              "offset": 2426220,
+              "size": 4,
+              "kind": "debug directory timestamp"
+            }
+          ],
+          "cargo_registry_diagnostic_path_case_replacements": 37
+        },
+        "packaged": {
+          "sha256": "d492766638a4739bdacb65af6de16c2dc0d71b16b19ed8cac688209090c09a49",
+          "executable_identity_sha256": "2f81a1dbe8b9b98389484970328842624382c936d7f8ecae7a644311b8cd15e0",
+          "normalized_metadata": [
+            {
+              "offset": 256,
+              "size": 4,
+              "kind": "COFF build timestamp"
+            },
+            {
+              "offset": 336,
+              "size": 4,
+              "kind": "PE image checksum"
+            },
+            {
+              "offset": 2426164,
+              "size": 4,
+              "kind": "debug directory timestamp"
+            },
+            {
+              "offset": 2426600,
+              "size": 30,
+              "kind": "CodeView PDB identity/age/debug path"
+            },
+            {
+              "offset": 2426192,
+              "size": 4,
+              "kind": "debug directory timestamp"
+            },
+            {
+              "offset": 2426220,
+              "size": 4,
+              "kind": "debug directory timestamp"
+            }
+          ],
+          "cargo_registry_diagnostic_path_case_replacements": 0
+        },
+        "build": {
+          "sha256": "d492766638a4739bdacb65af6de16c2dc0d71b16b19ed8cac688209090c09a49",
+          "executable_identity_sha256": "2f81a1dbe8b9b98389484970328842624382c936d7f8ecae7a644311b8cd15e0",
+          "normalized_metadata": [
+            {
+              "offset": 256,
+              "size": 4,
+              "kind": "COFF build timestamp"
+            },
+            {
+              "offset": 336,
+              "size": 4,
+              "kind": "PE image checksum"
+            },
+            {
+              "offset": 2426164,
+              "size": 4,
+              "kind": "debug directory timestamp"
+            },
+            {
+              "offset": 2426600,
+              "size": 30,
+              "kind": "CodeView PDB identity/age/debug path"
+            },
+            {
+              "offset": 2426192,
+              "size": 4,
+              "kind": "debug directory timestamp"
+            },
+            {
+              "offset": 2426220,
+              "size": 4,
+              "kind": "debug directory timestamp"
+            }
+          ],
+          "cargo_registry_diagnostic_path_case_replacements": 0
+        }
+      }
+    }
+  },
+  "final_integrity": {
+    "path": "artifacts/lwext4-final-integrity-results.json",
+    "sha256": "b96c047bc080b3b2337aa77cf824b704f8e1f8cc1e20809c69fd97a8569bb1c6",
+    "result": {
+      "status": "pass",
+      "python_syntax_files": 9,
+      "ci_yaml_jobs": 5,
+      "package_integrity": [
+        {
+          "platform": "linux",
+          "status": "pass",
+          "manifest_files": 52,
+          "source_inputs": 55,
+          "compile_inputs": 23,
+          "worker_sha256": "49206dd64c98a3910798440ec0ca94058464f6623dc1749300122f97e97c0f9b",
+          "package_manifest_sha256": "b0b2d7c7c639182618fd5b3aab5826900aebf7bc2359caf3912048dd2c1b36ac"
+        },
+        {
+          "platform": "windows",
+          "status": "pass",
+          "manifest_files": 671,
+          "source_inputs": 55,
+          "compile_inputs": 23,
+          "worker_sha256": "409e744e3d82c359be6b17ce559e7c9b17f01eed95076e142505ec248f64b711",
+          "package_manifest_sha256": "b39a010dff589e993102727863344c9001a05e37e0f38f4542e30f466deba1e0"
+        }
+      ],
+      "preexisting_license_bytes_preserved": true
+    }
+  },
+  "format_and_syntax": {
+    "rustfmt": "pass",
+    "own_c_clang_format": "pass",
+    "python_ast_files": 9,
+    "ci_yaml_jobs": 5,
+    "diff_whitespace": "pass; existing LICENSE line endings and upstream patch context excluded",
+    "remote_ci_run": false
+  },
+  "cleanup": {
+    "path": "artifacts/lwext4-final-cleanup-results.json",
+    "sha256": "002e6e43d6cabd0b7193391eefbfbca4a80d468f2544279ec85a05e85cde7826",
+    "result": {
+      "status": "pass",
+      "finished_at": "2026-11-16T11:54:33.649534+00:00",
+      "scope": "Only five explicitly listed token-marked private large-file test roots. Result JSON and logs retained outside these roots.",
+      "preconditions": {
+        "active_owned_test_processes": 0,
+        "active_test_mounts": 0,
+        "active_test_loop_backings": 0
+      },
+      "roots": [
+        {
+          "root": "/tmp/xetch-lwext4-v1-linux-large",
+          "purpose": "xetch-filesystem-validation-v1",
+          "token": "749623a0-df86-4c06-81ff-2637fd0e9506",
+          "logical_bytes": 23958097352,
+          "allocated_bytes_before": 21911355392,
+          "removed": true
+        },
+        {
+          "root": "/tmp/xetch-lwext4-v3-linux-large",
+          "purpose": "xetch-filesystem-validation-v1",
+          "token": "500f511f-1dd2-4fd3-95c6-adb687bbc269",
+          "logical_bytes": 4361221,
+          "allocated_bytes_before": 4370432,
+          "removed": true
+        },
+        {
+          "root": "/mnt/c/users/guoqifish/desktop/develop/xetch/artifacts/lwext4-v1-windows-large",
+          "purpose": "xetch-filesystem-validation-v1",
+          "token": "e08a318d-6f8c-4165-abe2-b6b56bda6689",
+          "logical_bytes": 850464902,
+          "allocated_bytes_before": 850468864,
+          "removed": true
+        },
+        {
+          "root": "/mnt/c/users/guoqifish/desktop/develop/xetch/artifacts/lwext4-v2-windows-large",
+          "purpose": "xetch-filesystem-validation-v1",
+          "token": "b46baa5b-936a-4419-a4bc-6585966ef010",
+          "logical_bytes": 13179164937,
+          "allocated_bytes_before": 13179240448,
+          "removed": true
+        },
+        {
+          "root": "/mnt/c/users/guoqifish/desktop/develop/xetch/artifacts/lwext4-v3-windows-large",
+          "purpose": "xetch-filesystem-validation-v1",
+          "token": "ba5b0c2b-a52b-4cce-b1e1-32c608e29e6d",
+          "logical_bytes": 4332665,
+          "allocated_bytes_before": 4341760,
+          "removed": true
+        }
+      ],
+      "allocated_bytes_before_total": 35949776896
+    }
+  },
+  "problems_found_and_fixed": [
+    "LARGE_FILE superblock flag missing after a regular file exceeds signed 32-bit size.",
+    "UID/GID high 16-bit fields and legacy inode short-checksum layout.",
+    "Write errors masked by inode release status.",
+    "Legacy/modern Unicode xattr hashes, shared xattr block copy-on-write and ACL inheritance.",
+    "Reuse of a Linux NTFS worker requiring a newer host GLIBC and headless PowerShell worker-version capture."
+  ],
+  "independent_oracle": {
+    "e2fsprogs": "1.47.4",
+    "sha256": "c15c582774c37c0f5790898cd1b9514ed7d76457971080baf28de81ff61756dd",
+    "not_linked_or_shipped": true,
+    "kernel": "Linux ext4 in WSL2; both native Windows and Linux editing binaries tested"
+  },
+  "limits": [
+    "Only traditional inode/single-external-block xattrs; no EA_INODE or RichACL inheritance.",
+    "macOS/ARM64 binaries, physical power loss and exhaustive extent/capacity/depth limits are not verified.",
+    "Finite stress and injected process/I/O failures do not imply arbitrary power-failure safety.",
+    "Windows GUI controller/rendering and production launch validated; file-picker mouse/keyboard interaction is not fully automated.",
+    "Physical disk editing is planned, remains disabled, and has no write-verification claim.",
+    "Full workspace tests preceded final C fixes; both platform worker integration tests and complete advanced suites were rerun against the final worker hashes."
+  ]
+}

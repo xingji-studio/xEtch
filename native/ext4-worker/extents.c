@@ -316,6 +316,7 @@ int ext4_extent_get_blocks(struct ext4_inode_ref *ref, ext4_lblk_t logical, uint
     int error = load(&t, ref);
     if (error)
         return error;
+    uint32_t allocated = 1;
     size_t i = 0;
     while (i < t.count && (uint64_t)t.runs[i].logical + t.runs[i].length <= logical)
         i++;
@@ -340,6 +341,9 @@ int ext4_extent_get_blocks(struct ext4_inode_ref *ref, ext4_lblk_t logical, uint
         t.count += pieces - 1;
         *result = r.physical + delta;
     } else if (create) {
+        uint32_t wanted = maximum > 256 ? 256 : maximum;
+        if (i < t.count && wanted > t.runs[i].logical - logical)
+            wanted = t.runs[i].logical - logical;
         uint64_t goal =
             i ? t.runs[i - 1].physical + t.runs[i - 1].length : ext4_get32(&ref->fs->sb, first_data_block);
         if (goal >= ext4_sb_get_blocks_cnt(&ref->fs->sb))
@@ -350,22 +354,38 @@ int ext4_extent_get_blocks(struct ext4_inode_ref *ref, ext4_lblk_t logical, uint
             return error;
         }
         memmove(t.runs + i + 1, t.runs + i, (t.count - i) * sizeof(*t.runs));
-        t.runs[i] = (struct run){logical, 1, *result, false};
+        allocated = 1;
+        while (allocated < wanted && *result + allocated < ext4_sb_get_blocks_cnt(&ref->fs->sb)) {
+            bool available = false;
+            error = ext4_balloc_try_alloc_block(ref, *result + allocated, &available);
+            if (error) {
+                dispose(&t);
+                return error;
+            }
+            if (!available)
+                break;
+            allocated++;
+        }
+        t.runs[i] = (struct run){logical, allocated, *result, false};
         t.count++;
     } else {
+        uint64_t hole = i < t.count ? t.runs[i].logical - logical : maximum;
+        if (count)
+            *count = (uint32_t)(hole < maximum ? hole : maximum);
         dispose(&t);
         return EOK;
     }
-    uint8_t *zero = calloc(1, t.block_size);
+    /* Unwritten conversion splits off exactly one initialized block. */
+    uint8_t *zero = calloc(allocated, t.block_size);
     /* lwext4 writes regular-file payloads directly. A dirty zero-filled cache
      * entry would later overwrite those bytes at journal checkpoint time.
      * Initialize data durably without admitting it as dirty metadata. */
-    error = zero ? ext4_blocks_set_direct(ref->fs->bdev, zero, *result, 1) : ENOMEM;
+    error = zero ? ext4_blocks_set_direct(ref->fs->bdev, zero, *result, allocated) : ENOMEM;
     free(zero);
     if (!error)
         error = save(&t);
     if (!error && count)
-        *count = 1;
+        *count = allocated;
     dispose(&t);
     return error;
 }

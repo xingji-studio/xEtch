@@ -126,6 +126,15 @@ fn run(
                 if offset != 0 || body["pid"].as_u64() != Some(u64::from(worker.id())) {
                     return Err(Error::Dependency("invalid lwext4 greeting".into()));
                 }
+                if body["protocol"].as_u64() != Some(1)
+                    || body["profile"].as_str() != Some("bsd-xattr-acl-v1")
+                    || body["xattr"].as_bool() != Some(true)
+                    || body["acl"].as_bool() != Some(true)
+                {
+                    return Err(Error::Dependency(
+                        "lwext4 worker profile mismatch; rebuild the BSD xattr/ACL worker".into(),
+                    ));
+                }
                 hello = true;
                 crate::validation::checkpoint(
                     "ext4_worker.started",

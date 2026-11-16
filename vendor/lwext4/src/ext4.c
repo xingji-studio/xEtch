@@ -45,6 +45,7 @@
 #include <ext4_trans.h>
 #include <ext4_blockdev.h>
 #include <ext4_fs.h>
+#include <ext4_extent.h>
 #include <ext4_dir.h>
 #include <ext4_inode.h>
 #include <ext4_super.h>
@@ -1695,7 +1696,17 @@ int ext4_fread(ext4_file *file, void *buf, size_t size, size_t *rcnt)
         if (amount > remaining) amount = (uint32_t)remaining;
         if (logical > UINT32_MAX) { error = EFBIG; break; }
         ext4_fsblk_t physical = 0;
-        error = ext4_fs_get_inode_dblk_idx(&ref, (uint32_t)logical, &physical, true);
+        if (ext4_inode_has_flag(ref.inode, EXT4_INODE_FLAG_EXTENTS)) {
+            uint32_t wanted = (uint32_t)((remaining + within + block_size - 1) / block_size);
+            if (wanted > 256) wanted = 256;
+            uint32_t mapped = 0;
+            error = ext4_extent_get_blocks(&ref, (uint32_t)logical, wanted, &physical, false, &mapped);
+            if (!error && !mapped) error = EIO;
+            if (!error) {
+                uint64_t bytes = (uint64_t)mapped * block_size - within;
+                amount = (uint32_t)(bytes < remaining ? bytes : remaining);
+            }
+        } else error = ext4_fs_get_inode_dblk_idx(&ref, (uint32_t)logical, &physical, true);
         if (error) break;
         if (!physical) memset(output, 0, amount);
         else error = ext4_block_readbytes(file->mp->fs.bdev,
@@ -1707,6 +1718,42 @@ int ext4_fread(ext4_file *file, void *buf, size_t size, size_t *rcnt)
     int release = ext4_fs_put_inode_ref(&ref);
     EXT4_MP_UNLOCK(file->mp);
     return error ? error : release;
+}
+
+/* xEtch: bounded extent batches retain journaled metadata and ordered payloads. */
+static int xetch_extent_payload(ext4_file *file, struct ext4_inode_ref *ref,
+                               const void *buffer, size_t remaining, size_t *written)
+{
+    struct ext4_blockdev *device = file->mp->fs.bdev;
+    uint32_t bs = ext4_sb_get_block_size(&file->mp->fs.sb);
+    const uint8_t *input = buffer;
+    int error = ext4_block_cache_write_back(device, 1);
+    while (!error && remaining) {
+        uint64_t logical = file->fpos / bs;
+        uint32_t within = (uint32_t)(file->fpos % bs);
+        if (logical > UINT32_MAX) { error = EFBIG; break; }
+        uint32_t wanted = within || remaining < bs ? 1 : (uint32_t)(remaining / bs);
+        if (wanted > 256) wanted = 256;
+        ext4_fsblk_t physical = 0;
+        uint32_t mapped = 0;
+        error = ext4_extent_get_blocks(ref, (uint32_t)logical, wanted, &physical, true, &mapped);
+        if (error) break;
+        if (!physical || !mapped) { error = EIO; break; }
+        size_t amount = (size_t)mapped * bs - within;
+        if (amount > remaining) amount = remaining;
+        if (!within && amount % bs == 0)
+            error = ext4_blocks_set_direct(device, input, physical, (uint32_t)(amount / bs));
+        else error = ext4_block_writebytes(device, physical * bs + within, input, (uint32_t)amount);
+        if (error) break;
+        input += amount; remaining -= amount; file->fpos += amount;
+        if (written) *written += amount;
+    }
+    if (file->fpos > file->fsize) {
+        file->fsize = file->fpos;
+        ext4_inode_set_size(ref->inode, file->fsize); ref->dirty = true;
+    }
+    int flush = ext4_block_cache_write_back(device, 0);
+    return error ? error : flush;
 }
 
 int ext4_fwrite(ext4_file *file, const void *buf, size_t size, size_t *wcnt)
@@ -1750,6 +1797,11 @@ int ext4_fwrite(ext4_file *file, const void *buf, size_t size, size_t *wcnt)
 		ext4_trans_abort(file->mp);
 		EXT4_MP_UNLOCK(file->mp);
 		return r;
+	}
+
+	if (ext4_inode_has_flag(ref.inode, EXT4_INODE_FLAG_EXTENTS)) {
+		r = xetch_extent_payload(file, &ref, buf, size, wcnt);
+		goto Finish;
 	}
 
 	/*Sync file size*/
@@ -1887,7 +1939,10 @@ out_fsize:
 	}
 
 Finish:
-	r = ext4_fs_put_inode_ref(&ref);
+	{
+		int release = ext4_fs_put_inode_ref(&ref);
+		if (r == EOK) r = release;
+	}
 
 	if (r != EOK)
 		ext4_trans_abort(file->mp);

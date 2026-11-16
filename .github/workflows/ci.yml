@@ -83,12 +83,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: sudo apt-get update && sudo apt-get install -y qemu-utils qemu-system-common exfatprogs e2fsprogs
+      - run: sudo apt-get update && sudo apt-get install -y qemu-utils qemu-system-common exfatprogs e2fsprogs build-essential uuid-dev libblkid-dev
       - run: cargo build --locked --release --workspace --bins --example qsd_fault_proxy --example ext4_protocol_probe
       - run: cargo build --locked --release -p xetch-cli --features validation-hooks --target-dir target/validation-linux
-      - run: python3 scripts/build_ext4_worker.py
+      - run: python3 scripts/build_ext4_worker.py --with-probe
+      - run: python3 scripts/build_fs_validation_tools.py
       - name: BSD lwext4 P0 engine and existing-engine differential matrix
-        run: python3 scripts/lwext4_validate.py --suite all --directory artifacts/lwext4-linux --output artifacts/lwext4-linux-results.json
+        run: python3 scripts/lwext4_validate.py --suite all --directory artifacts/lwext4-linux --output artifacts/lwext4-linux-results.json --e2fsck artifacts/tools/e2fsprogs/sbin/e2fsck
       - name: NBD startup collision recovery and retry bound
         run: python3 scripts/nbd_startup_validate.py --directory artifacts/nbd-startup-linux --output artifacts/nbd-startup-linux-results.json
       - name: Kernel roundtrips, files above 4 GiB and crash recovery
@@ -107,6 +108,7 @@ jobs:
             artifacts/lwext4-linux/**/operations.jsonl
             target/release/ext4-worker-profile.json
             target/release/ext4-worker-licenses/
+            artifacts/tools/e2fsprogs/validation-tool-profile.json
   windows-images:
     needs: disk-images
     runs-on: windows-latest

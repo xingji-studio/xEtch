@@ -551,6 +551,7 @@ class Advanced(Validation):
 def arguments():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--binary",type=Path,default=ROOT/"target/release/xetch")
+    parser.add_argument("--e2fsck",type=Path)
     parser.add_argument("--ext4-engine",choices=["fstool","lwext4"])
     parser.add_argument("--ext4-worker",type=Path)
     parser.add_argument("--validation-binary",type=Path)

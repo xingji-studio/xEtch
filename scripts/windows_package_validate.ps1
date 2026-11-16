@@ -19,7 +19,7 @@ function Check([bool]$Condition, [string]$Name) { if (-not $Condition) { throw $
 function Invoke-XetchPackage([string[]]$Arguments) { (Invoke-Tool $backend (@("--json") + $Arguments) -WorkingDirectory $Directory) | ConvertFrom-Json }
 $report = @{schema_version=1;status="running";platform="native Windows x64";checks=$checks}
 try {
-    foreach ($name in @("XETCH_GUI", "XETCH_BACKEND", "XETCH_QEMU_IMG", "XETCH_QEMU_STORAGE_DAEMON", "XETCH_NTFS_WORKER", "QEMU_MODULE_DIR", "DOTNET_ROOT")) {
+    foreach ($name in @("XETCH_EXT4_ENGINE", "XETCH_EXT4_WORKER", "XETCH_GUI", "XETCH_BACKEND", "XETCH_QEMU_IMG", "XETCH_QEMU_STORAGE_DAEMON", "XETCH_NTFS_WORKER", "QEMU_MODULE_DIR", "DOTNET_ROOT")) {
         [Environment]::SetEnvironmentVariable($name, $null, "Process")
     }
     $env:PATH = "$env:SystemRoot\System32;$env:SystemRoot"
@@ -34,11 +34,13 @@ try {
     [IO.File]::WriteAllText($payload, "portable native Windows content`n", $utf8)
     Invoke-XetchPackage @("--experimental-filesystems", "create", "--output", $image, "--size", "64MiB", "--table", "gpt", "--filesystem", "ext4") | Out-Null
     Invoke-XetchPackage @("workspace", "create", $image, "--workspace", $workspace) | Out-Null
+    if ($manifest.ext4_worker) { $env:XETCH_EXT4_ENGINE = "lwext4" }
     Invoke-XetchPackage @("--experimental-filesystems", "file", "put", "--workspace", $workspace, "--source", $payload, "--destination", "/data.txt") | Out-Null
     $saved = Join-Path $Directory "edited.vmdk"
     $readback = Join-Path $Directory "readback.txt"
     Invoke-XetchPackage @("apply", "--workspace", $workspace, "--output", $saved) | Out-Null
     Invoke-XetchPackage @("file", "get", $saved, "--source", "/data.txt", "--destination", $readback) | Out-Null
+    if ($manifest.ext4_worker) { Check $true "bundled_bsd_ext4_worker_selected_without_PATH" }
     Check ((Get-FileHash $payload).Hash -eq (Get-FileHash $readback).Hash) "create_ext4_edit_and_vmdk_readback_in_relocated_unicode_path"
     $ps = Join-Path $PSHOME "powershell.exe"
     Invoke-Tool $ps @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", (Join-Path $relocated "check-deps.ps1"), "-Isolated") -WorkingDirectory $Directory | Out-Null
@@ -49,6 +51,14 @@ try {
         $diagnostic = Invoke-Tool $ps @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", (Join-Path $relocated "check-deps.ps1")) -ExpectFailure -WorkingDirectory $Directory
         Check ($diagnostic -match "qemu-img") "missing_dependency_is_reported"
     } finally { Move-Item -LiteralPath ($qemu+".hidden") -Destination $qemu }
+    if ($manifest.ext4_worker) {
+        $worker = Join-Path $relocated "xetch-ext4-worker.exe"
+        Move-Item -LiteralPath $worker -Destination ($worker+".hidden")
+        try {
+            $diagnostic = Invoke-Tool $ps @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", (Join-Path $relocated "check-deps.ps1")) -ExpectFailure -WorkingDirectory $Directory
+            Check ($diagnostic -match "xetch-ext4-worker") "missing_bsd_ext4_worker_is_reported"
+        } finally { Move-Item -LiteralPath ($worker+".hidden") -Destination $worker }
+    }
     if ($manifest.gui_self_contained) {
         $gui = Join-Path $relocated "gui/xEtch.Windows.exe"
         & (Join-Path $PSScriptRoot "windows_launcher_validate.ps1") -Backend $backend -Gui $gui -Directory (Join-Path $Directory "launcher") -Output (Join-Path $Directory "launcher-results.json")

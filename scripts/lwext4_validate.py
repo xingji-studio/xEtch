@@ -80,8 +80,8 @@ class P0(Advanced):
         self.consistency("ext4",attributed);attributed_hash=sha(attributed)
         guarded=folder/"xattrs-session";self.backend.cli("workspace","create",attributed,"--workspace",guarded)
         before=(guarded/"workspace.json").read_bytes()
-        error=self.backend.cli("file","put","--workspace",guarded,"--source",payload,"--destination","/shared.bin","--replace",fail=True)
-        assert error["code"]=="unsupported" and (guarded/"workspace.json").read_bytes()==before,error
+        self.backend.cli("file","put","--workspace",guarded,"--source",payload,"--destination","/shared.bin","--replace")
+        assert (guarded/"workspace.json").read_bytes()!=before
         self.control("file","put","--workspace",guarded,"--source",payload,"--destination","/shared.bin","--replace")
         kept=folder/"xattrs-kept.img";self.control("apply","--workspace",guarded,"--output",kept)
         self.consistency("ext4",kept)
@@ -89,7 +89,7 @@ class P0(Advanced):
         assert sha(attributed)==attributed_hash
         return {"suite":"differential","status":"pass","checks":["identical_kernel_source_for_both_engines","both_engines_replace_and_move","both_engines_read_both_exports",
                 "kernel_verifies_all_contents","hardlink_inode_preserved","32_bit_owner_and_mode_preserved","sparse_holes_and_unwritten_extents_read_zero",
-                "empty_preallocated_inode_deletion_frees_all_blocks","excluded_xattrs_fail_closed_without_checkpoint_change",
+                "empty_preallocated_inode_deletion_frees_all_blocks","bsd_worker_preserves_existing_xattrs",
                 "explicit_fstool_control_retains_xattrs","independent_fsck","original_source_unchanged"]}
 
     def extents(self):
@@ -136,7 +136,7 @@ class P0(Advanced):
         folder=self.root/"worker-faults";folder.mkdir();source=folder/"source.img"
         self.backend.cli("create","--output",source,"--size","64MiB","--table","none","--filesystem","ext4")
         original=sha(source);checks=[]
-        for mode in ("oversized","out_of_bounds","write_read_only","wrong_magic","exit"):
+        for mode in ("oversized","out_of_bounds","write_read_only","wrong_magic","exit","old_profile"):
             env=self.backend.env.copy();env.update(XETCH_EXT4_WORKER=self.backend.host(self.probe),XETCH_EXT4_PROBE=mode)
             if self.backend.windows:env["WSLENV"]=env.get("WSLENV","")+":XETCH_EXT4_PROBE"
             error=self.backend.cli("file","list",source,env=env,fail=True)
@@ -262,6 +262,14 @@ class P0(Advanced):
                 self.report["cases"].append(self.fault("ext4"));self.save()
             if selected in ("stress","all"):
                 self.report["cases"].extend(self.stress("ext4"));self.save()
+            if selected in ("metadata","all"):
+                from lwext4_metadata_validate import metadata_cases
+                self.report["cases"].extend(metadata_cases(self));self.save()
+            if selected in ("metadata-faults","all"):
+                from lwext4_metadata_validate import metadata_faults
+                self.report["cases"].append(metadata_faults(self));self.save()
+            if selected in ("large","all"):
+                self.report["cases"].append(self.large("ext4"));self.save()
             self.report["status"]="pass"
         except Exception as error:
             self.report.update(status="fail",error=str(error));raise
@@ -274,8 +282,9 @@ def arguments():
     parser.add_argument("--binary",type=Path,default=ROOT/"target/release/xetch")
     parser.add_argument("--validation-binary",type=Path)
     parser.add_argument("--ext4-worker",type=Path)
+    parser.add_argument("--e2fsck",type=Path)
     parser.add_argument("--ext4-engine",choices=["lwext4"],default="lwext4")
-    parser.add_argument("--suite",dest="p0_suite",choices=["interoperability","extents","journal-escape","boundaries","io-faults","stress","all"],default="all")
+    parser.add_argument("--suite",dest="p0_suite",choices=["interoperability","extents","journal-escape","boundaries","io-faults","stress","metadata","metadata-faults","large","all"],default="all")
     parser.add_argument("--directory",type=Path,required=True);parser.add_argument("--output",type=Path,required=True)
     parser.add_argument("--qemu-directory",type=Path,default=ROOT/"artifacts/windows/qemu")
     parser.add_argument("--mkfs-exfat",type=Path,default=ROOT/"artifacts/tools/exfatprogs/usr/sbin/mkfs.exfat")
@@ -284,6 +293,7 @@ def arguments():
     parser.add_argument("--wsl-distribution");parser.add_argument("--wsl",type=Path,default=Path("/mnt/c/Windows/System32/wsl.exe"))
     parser.add_argument("--operations",type=int,default=1000);parser.add_argument("--seeds",type=lambda s:int(s,0),nargs="+",default=[0x5eed,0xc0ffee])
     parser.add_argument("--checkpoint-every",type=int,choices=range(1,97),default=16)
+    parser.add_argument("--payload",type=Path)
     parser.add_argument("--keep-artifacts",action="store_true")
     args=parser.parse_args()
     if args.operations<1:parser.error("operations must be positive")

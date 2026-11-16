@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "platform": "native Windows x64",
+  "checks": [
+    "bundled_qemu_without_PATH_or_development_overrides",
+    "bundled_ntfs_worker_matches_package",
+    "bundled_bsd_ext4_worker_selected_without_PATH",
+    "create_ext4_edit_and_vmdk_readback_in_relocated_unicode_path",
+    "runtime_check_without_python_or_dotnet_on_PATH",
+    "missing_dependency_is_reported",
+    "no_argument_gui_startup_via_process_shell_cmd_powershell_and_shortcut",
+    "production_gui_window_starts_with_bundled_runtime",
+    "gui_automatically_finds_packaged_backend_and_qemu_and_edits_ext4",
+    "missing_bsd_ext4_worker_is_reported"
+  ],
+  "ext4_engine": "lwext4",
+  "component_policy": "on",
+  "worker_sha256": "409e744e3d82c359be6b17ce559e7c9b17f01eed95076e142505ec248f64b711",
+  "backend_sha256": "d492766638a4739bdacb65af6de16c2dc0d71b16b19ed8cac688209090c09a49",
+  "build_mode": "one-click package including frontend on Windows; matching no-build packaging also verified",
+  "profile": "bsd-xattr-acl-v1",
+  "nonshipping_examples_excluded": true,
+  "package_manifest_sha256": "b39a010dff589e993102727863344c9001a05e37e0f38f4542e30f466deba1e0"
+}

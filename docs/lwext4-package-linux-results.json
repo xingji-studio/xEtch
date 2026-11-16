@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "platform": "linux",
+  "checks": [
+    "relocated_unicode_and_space_path",
+    "empty_PATH_no_development_overrides",
+    "bundled_qemu_and_ntfs",
+    "create_ext4_and_edit_workspace",
+    "vmdk_export_and_readback",
+    "runtime_check_without_python",
+    "missing_dependency_is_reported",
+    "package_replacement_preserves_personal_files",
+    "backend_only_no_args_reports_missing_gui",
+    "stdio_rpc_does_not_launch_frontend",
+    "bundled_bsd_ext4_worker_selected_without_PATH",
+    "missing_bsd_ext4_worker_reported"
+  ],
+  "ext4_engine": "lwext4",
+  "component_policy": "on",
+  "worker_sha256": "49206dd64c98a3910798440ec0ca94058464f6623dc1749300122f97e97c0f9b",
+  "backend_sha256": "5f3371e11e3c817085ceb04f18a09917fec30951b31100ce2085447cd65c1b79",
+  "build_mode": "one-click package including frontend on Windows; matching no-build packaging also verified",
+  "profile": "bsd-xattr-acl-v1",
+  "nonshipping_examples_excluded": true,
+  "package_manifest_sha256": "b0b2d7c7c639182618fd5b3aab5826900aebf7bc2359caf3912048dd2c1b36ac"
+}

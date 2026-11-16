@@ -37,12 +37,13 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--target', choices=['native', 'windows'], default='native')
     parser.add_argument('--output', type=Path)
+    parser.add_argument('--with-probe', action='store_true', help='Build the non-shipping xattr API validation helper')
     args = parser.parse_args()
     manifest, sources = inventory()
     own = ROOT / 'native/ext4-worker'
-    sources += [own / name for name in ('extents.c', 'xattr_disabled.c', 'worker.c')]
-    windows = args.target == 'windows'
-    compiler = 'x86_64-w64-mingw32-gcc' if windows else os.environ.get('CC', 'cc')
+    sources += [own / name for name in ('extents.c', 'xattrs.c', 'acls.c', 'worker.c')]
+    windows = args.target == 'windows' or os.name == 'nt'
+    compiler = os.environ.get('XETCH_EXT4_CC') or ('x86_64-w64-mingw32-gcc' if windows else os.environ.get('CC', 'cc'))
     output = (args.output or ROOT / 'target' / ('windows/release' if windows else 'release')).resolve()
     output.mkdir(parents=True, exist_ok=True)
     binary = output / ('xetch-ext4-worker.exe' if windows else 'xetch-ext4-worker')
@@ -51,7 +52,7 @@ def main():
     flags = ['-std=c11', '-O2', '-g', '-D_FILE_OFFSET_BITS=64', '-DCONFIG_USE_DEFAULT_CFG=1',
              '-DCONFIG_DEBUG_PRINTF=0', '-DCONFIG_DEBUG_ASSERT=0', '-DCONFIG_HAVE_OWN_OFLAGS=1',
              '-DCONFIG_HAVE_OWN_ERRNO=0', '-DCONFIG_BLOCK_DEV_CACHE_SIZE=64',
-             '-DCONFIG_EXTENTS_ENABLE=1', '-DCONFIG_XATTR_ENABLE=0',
+             '-DCONFIG_EXTENTS_ENABLE=1', '-DCONFIG_XATTR_ENABLE=1',
              '-I' + str(ROOT / 'vendor/lwext4/include')]
     if windows:
         flags += ['-static']
@@ -60,14 +61,17 @@ def main():
         result = subprocess.run(command, stdout=log, stderr=subprocess.STDOUT)
     if result.returncode:
         raise RuntimeError((build / 'build.log').read_text(errors='replace')[-10000:])
-    profile = {'schema_version': 1, 'engine': 'lwext4', 'profile': 'bsd-extents-p0',
-               'protocol': 1, 'target': args.target, 'license': 'BSD-3-Clause',
+    inputs = [ROOT / 'vendor/lwext4' / item['path'] for item in manifest['files']]
+    inputs += [own / name for name in ('extents.c', 'xattrs.c', 'acls.c', 'worker.c', 'LICENSE')]
+    inputs += [ROOT / name for name in ('scripts/build_ext4_worker.py', 'vendor/lwext4-origin.json', 'vendor/lwext4-xetch.patch')]
+    profile = {'schema_version': 1, 'engine': 'lwext4', 'profile': 'bsd-xattr-acl-v1',
+               'protocol': 1, 'target': 'windows' if windows else 'native', 'license': 'BSD-3-Clause',
                'upstream': manifest['upstream'], 'revision': manifest['revision'],
                'excluded_gpl_sources': manifest['excluded_gpl_sources'],
                'compiler': compiler, 'flags': flags, 'worker_sha256': digest(binary),
                'compile_inputs': [{'path': p.relative_to(ROOT).as_posix(), 'sha256': digest(p)} for p in sources],
-               'features': {'independent_bsd_extents': True, 'xattr_mutation': False}}
-    (output / 'ext4-worker-profile.json').write_text(json.dumps(profile, indent=2) + '\n')
+               'source_inputs': [{'path': p.relative_to(ROOT).as_posix(), 'sha256': digest(p)} for p in inputs],
+               'features': {'independent_bsd_extents': True, 'xattr_mutation': True, 'posix_acl_inheritance': True}}
     notices = output / 'ext4-worker-licenses'
     notices.mkdir(exist_ok=True)
     shutil.copyfile(own / 'LICENSE', notices / 'xetch-ext4-worker-BSD-3-Clause.txt')
@@ -78,6 +82,12 @@ def main():
         end = text.find('#')
         notice.append(item['path'] + '\n' + text[:end] + '\n')
     (notices / 'lwext4-file-notices.txt').write_text('\n'.join(notice))
+    profile['license_files'] = {p.name: digest(p) for p in notices.iterdir() if p.is_file()}
+    (output / 'ext4-worker-profile.json').write_text(json.dumps(profile, indent=2) + '\n')
+    if args.with_probe:
+        probe = output / 'examples' / ('xetch-ext4-probe.exe' if windows else 'xetch-ext4-probe')
+        probe.parent.mkdir(exist_ok=True)
+        subprocess.run([compiler, *flags, *map(str, sources[:-1]), str(own / 'xattr_probe.c'), '-o', str(probe)], check=True)
     print(binary)
 
 

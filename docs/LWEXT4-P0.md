@@ -1,5 +1,10 @@
 # lwext4 BSD worker P0
 
+Historical P0 record for the initial `bsd-extents-p0` binaries. The current
+xattr/ACL implementation, large-file verification and packaging are documented
+in [LWEXT4.md](LWEXT4.md); the original evidence and limits below remain tied
+to the earlier binary hashes.
+
 The optional `xetch-ext4-worker` implements file browsing/export, file
 creation/replacement, mkdir, empty-directory/file removal and file/directory
 rename/move. The existing fstool implementation remains the default and the

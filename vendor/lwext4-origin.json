@@ -151,7 +151,7 @@
       "path": "src/ext4.c",
       "sha256": "a8948ff8172308443752752317471cf9e2d5a453d3b520e52cb30d03f2a302bf",
       "license": "BSD-3-Clause",
-      "vendored_sha256": "73096b9cdd3e28e9c9bfca2c83e92f630fc801491e7f1aa56da7d33cf14d6f36"
+      "vendored_sha256": "80a20f8416a14d2f4526a3269bf1a5d8cfd77430e1cd69a315ed73e247a8d7f0"
     },
     {
       "path": "src/ext4_balloc.c",
@@ -203,7 +203,7 @@
       "path": "src/ext4_fs.c",
       "sha256": "64895e42067c83d9d1b7f6c6c2122f1ee421c407f7009c985352c5db67949c7d",
       "license": "BSD-3-Clause",
-      "vendored_sha256": "b729dc40e02ebe277c2a3482f78bfed1b31c4af96f394464873c795b658e50ec"
+      "vendored_sha256": "4cbf8613b0b7cc328ae77d695878627a114be415b08dab9f942cb5576e196a3f"
     },
     {
       "path": "src/ext4_hash.c",
@@ -218,7 +218,8 @@
     {
       "path": "src/ext4_inode.c",
       "sha256": "987cdb24c3ceff005f154cd2a68b2c8dffc558356567df48297a97a3aeb39eea",
-      "license": "BSD-3-Clause"
+      "license": "BSD-3-Clause",
+      "vendored_sha256": "b8a6cb41f6250cbfc081d49ae04d2a2eab44e971e2880a6a4d949b23214f6883"
     },
     {
       "path": "src/ext4_journal.c",

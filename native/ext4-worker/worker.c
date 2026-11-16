@@ -155,6 +155,7 @@ static int stamp(const char *path, bool modified) {
     int error = ext4_ctime_set(path, now);
     return error || !modified ? error : ext4_mtime_set(path, now);
 }
+int xetch_acl_inherit(const char *path, const char *parent, bool directory, uint32_t parent_mode);
 static int initialize_metadata(const char *path, bool directory) {
     char parent[4097];
     parent_name(path, parent);
@@ -165,7 +166,7 @@ static int initialize_metadata(const char *path, bool directory) {
     if (!error)
         error = ext4_owner_set(path, 0, (mode & 02000) ? gid : 0);
     if (!error)
-        error = ext4_mode_set(path, (directory ? 0755 : 0644) | (directory ? (mode & 02000) : 0));
+        error = xetch_acl_inherit(path, parent, directory, mode);
     return error ? error : stamp(path, true);
 }
 static int kind(const char *path, uint32_t *mode) { return ext4_mode_get(path, mode); }
@@ -305,8 +306,8 @@ static int list(const char *path, char **result, uint32_t *length) {
 }
 int main(int argc, char **argv) {
     if (argc == 2 && !strcmp(argv[1], "--version")) {
-        puts("{\"engine\":\"lwext4\",\"protocol\":1,\"profile\":\"bsd-extents-p0\",\"extents\":true,"
-             "\"xattr\":false,\"license\":\"BSD-3-Clause\"}");
+        puts("{\"engine\":\"lwext4\",\"protocol\":1,\"profile\":\"bsd-xattr-acl-v1\",\"extents\":true,"
+             "\"xattr\":true,\"acl\":true,\"license\":\"BSD-3-Clause\"}");
         return 0;
     }
 #ifdef _WIN32
@@ -327,8 +328,11 @@ int main(int argc, char **argv) {
         free(destination);
         return fail(EINVAL, "paths");
     }
-    char hello[64];
-    int size = snprintf(hello, sizeof(hello), "{\"pid\":%u}", (unsigned)process_id());
+    char hello[256];
+    int size =
+        snprintf(hello, sizeof(hello),
+                 "{\"pid\":%u,\"protocol\":1,\"profile\":\"bsd-xattr-acl-v1\",\"xattr\":true,\"acl\":true}",
+                 (unsigned)process_id());
     if (emit('H', 0, hello, (uint32_t)size))
         return 1;
     unsigned char sector[512];

@@ -111,9 +111,11 @@ exFAT、ext4 均支持新建独立卷、MBR 或 GPT 的 IMG/VMDK。exFAT 文件�
 
 提交边界故障注入、持续分配/删除的随机碎片压力，以及 ext4 CSUM_V2、2 KiB 块真实内核回放与双向读写见 [进阶验收](docs/ADVANCED-FS-VALIDATION.md)。中断后重试可回收同一输出的暂存材料；原子发布之后的同步或清理失败返回 `commit_uncertain`，应先检查工作区或输出结果再继续。
 
-另提供可选的 `xetch-ext4-worker` P0：保留 lwext4 的 BSD 源文件，移除上游 GPL extent/xattr 实现，并补写独立的 BSD extent 模块。运行 `python3 scripts/build_ext4_worker.py`（Windows 加 `--target windows`），将 worker 放到后端旁，设置 `XETCH_EXT4_ENGINE=lwext4` 后启动 CLI 或 GUI；也可用 `XETCH_EXT4_WORKER` 指定路径。现有命令和 JSON-RPC 协议继续使用，默认仍为原有 `fstool` 引擎。此 P0 对涉及扩展属性或默认 ACL 的修改明确拒绝；实现、许可证来源、Windows/Linux 对照与故障验证见 [lwext4 P0 报告](docs/LWEXT4-P0.md)。
+另提供可选的 `xetch-ext4-worker`：保留 lwext4 的 BSD 源文件，移除上游两个 GPL 实现，补写独立 BSD extent、xattr 和 POSIX ACL 模块。支持扩展属性读写与共享块处理、已有属性/ACL 保留、默认 ACL 与 setgid 继承。`XETCH_EXT4=auto|on|off` 控制一键构建/打包的组件收集，`XETCH_EXT4_ENGINE=lwext4` 在运行时选择该引擎；默认仍为原有 `fstool`。构建、支持边界及 Windows/Linux 验收见 [lwext4 说明](docs/LWEXT4.md)。
 
 NTFS 使用独立的 NTFS-3G 工作进程进行普通文件读写，无需实验开关。支持文件创建/替换、文件夹创建、文件与空目录删除、文件改名及移动；覆盖保留原 MFT、安全描述符、ADS 和 EA。只接受正常关闭的离线卷；拒绝脏卷、休眠卷、系统元数据路径、目录改名及压缩/EFS/reparse 文件修改。Linux 和 Windows 原生读写验证、故障回退及独立工具检查见 [NTFS 报告](docs/NTFS.md)。
+
+本机物理分区编辑已有 [分阶段设计方案](docs/PHYSICAL-PARTITIONS-PLAN.md)，包括系统/引导分区保护、独占访问、写入确认与恢复日志；当前版本仍只编辑镜像。
 
 ## 当前能力边界
 

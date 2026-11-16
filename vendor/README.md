@@ -6,14 +6,14 @@
 `58bcf89a121b72d4fb66334f1693d3b30e4cb9c5`, with their original notices retained.
 `src/ext4_extent.c` and `src/ext4_xattr.c` are excluded GPL implementations.
 The opt-in worker uses the independent BSD extent module in
-`native/ext4-worker/`, and disables xattr mutation. It does not build the
+`native/ext4-worker/`, including independent xattr and POSIX ACL adapters. It does not build the
 excluded implementations. The existing fstool path remains the default.
 
 [lwext4-origin.json](lwext4-origin.json) lists original and reviewed modified
 hashes; [lwext4-xetch.patch](lwext4-xetch.patch) records the BSD upstream delta.
 The build checks exact source inventory and hashes before compiling and bundles
 all selected notices, including the BSD-2-Clause `include/misc/tree.h` notice.
-See [the P0 report](../docs/LWEXT4-P0.md) for provenance, fixes and verification.
+See [the current report](../docs/LWEXT4.md) for provenance, fixes and verification.
 
 ## fstool
 

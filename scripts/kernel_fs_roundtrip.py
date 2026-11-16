@@ -197,8 +197,18 @@ def validate(request):
         if filesystem == "ext4":
             bs=request.get("ext_block_size",4096)
             if bs not in (1024,2048,4096): raise ValueError("Unsupported test block size")
-            options=["-O","^64bit"] if request.get("journal_64bit") is False else []
-            run("mkfs.ext4", "-q", "-F", "-b",bs,*options,"-E", "lazy_itable_init=0,lazy_journal_init=0", image)
+            inode_size=request.get("ext_inode_size",256)
+            if inode_size not in (128,256):raise ValueError("Unsupported inode size")
+            # Test the admitted compatibility profile explicitly, independent
+            # of newer mke2fs defaults for seed checksums and orphan_file.
+            features=["^metadata_csum_seed"]
+            version=subprocess.run(["mkfs.ext4","-V"],capture_output=True,text=True)
+            match=re.search(r"mke2fs (\d+)\.(\d+)",version.stdout+version.stderr)
+            if match and tuple(map(int,match.groups()))>=(1,47):features.append("^orphan_file")
+            if request.get("journal_64bit") is False:features.append("^64bit")
+            if request.get("metadata_checksum") is False:features.append("^metadata_csum")
+            options=["-O",",".join(features)] if features else []
+            run("mkfs.ext4", "-q", "-F", "-b",bs,"-I",inode_size,*options,"-E", "lazy_itable_init=0,lazy_journal_init=0", image)
         else:
             tool = request.get("mkfs_exfat") or shutil.which("mkfs.exfat")
             if not tool:
@@ -242,6 +252,24 @@ def validate(request):
             assert actual_dirs==set(request["expect_directories"]),(actual_dirs^set(request["expect_directories"]))
             assert actual_files==set(request.get("expect",{})),(actual_files^set(request.get("expect",{})))
             checks.append("kernel_exact_full_directory_and_file_namespace")
+
+        for name,ranges in request.get("expect_ranges",{}).items():
+            with relative(mount,name).open("rb") as stream:
+                for sample in ranges:
+                    stream.seek(sample["offset"]);data=stream.read(sample["size"])
+                    assert len(data)==sample["size"] and hashlib.sha256(data).hexdigest()==sample["sha256"],(name,sample)
+            checks.append(f"kernel_sparse_ranges:{name}")
+        for name,attributes in request.get("expect_xattrs",{}).items():
+            path=relative(mount,name)
+            for key,value in attributes.items():
+                actual=os.getxattr(path,key)
+                assert actual==bytes.fromhex(value),(name,key,actual.hex(),value)
+            checks.append(f"kernel_xattrs:{name}")
+        for name,metadata in request.get("expect_metadata",{}).items():
+            info=relative(mount,name).stat()
+            actual={"mode":stat.S_IMODE(info.st_mode),"uid":info.st_uid,"gid":info.st_gid,"links":info.st_nlink}
+            assert all(actual[k]==v for k,v in metadata.items()),(name,actual,metadata)
+            checks.append(f"kernel_metadata_verified:{name}")
         for name, content in request.get("write", {}).items():
             path = relative(mount, name)
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -262,6 +290,11 @@ def validate(request):
             if "uid" in metadata or "gid" in metadata:
                 os.chown(path,metadata.get("uid",-1),metadata.get("gid",-1))
             checks.append(f"kernel_metadata:{name}")
+
+        for name,attributes in request.get("xattrs",{}).items():
+            path=relative(mount,name)
+            for key,value in attributes.items():os.setxattr(path,key,bytes.fromhex(value))
+            checks.append(f"kernel_setxattrs:{name}")
         for name in request.get("unlink",[]):
             relative(mount,name).unlink()
             checks.append(f"kernel_unlink:{name}")

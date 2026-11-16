@@ -75,6 +75,10 @@ class Validation:
                        "cases": [], "limits": ["Fault injection does not simulate physical power loss."]}
         if self.fault_proxy:
             self.report["fault_proxy_sha256"] = sha(self.fault_proxy)
+        oracle=getattr(args,"e2fsck",None) or os.environ.get("XETCH_E2FSCK","e2fsck")
+        oracle_path=Path(shutil.which(str(oracle)) or oracle).resolve(strict=True)
+        version=subprocess.run([str(oracle_path),"-V"],capture_output=True,check=True)
+        self.report["e2fsck"]={"version":(version.stdout+version.stderr).decode(errors="replace").splitlines()[0],"sha256":sha(oracle_path)}
         engine = getattr(args, "ext4_engine", None) or os.environ.get("XETCH_EXT4_ENGINE", "fstool")
         if engine not in ("fstool", "lwext4"):
             raise ValueError("Unknown ext4 engine")
@@ -114,7 +118,9 @@ class Validation:
             command = ["sudo", "-n", sys.executable, str(helper), "--request", str(request_path)]
         result = subprocess.run(command, capture_output=True, timeout=600)
         if result.returncode:
-            raise RuntimeError(result.stdout.decode(errors="replace")+result.stderr.decode(errors="replace"))
+            def diagnostic(raw):
+                return raw.decode("utf-16-le" if b"\0" in raw else "utf-8",errors="replace")
+            raise RuntimeError(diagnostic(result.stdout)+diagnostic(result.stderr))
         data = json.loads(result.stdout)
         assert data["status"] == "pass"
         return data
@@ -124,7 +130,7 @@ class Validation:
         return {"size": len(data), "sha256": hashlib.sha256(data).hexdigest()}
 
     def consistency(self, filesystem, image):
-        command = [str(self.args.fsck_exfat), "-n", str(image)] if filesystem == "exfat" else ["e2fsck", "-fn", str(image)]
+        command = [str(self.args.fsck_exfat), "-n", str(image)] if filesystem == "exfat" else [str(getattr(self.args,"e2fsck",None) or os.environ.get("XETCH_E2FSCK","e2fsck")), "-fn", str(image)]
         result = subprocess.run(command, capture_output=True, timeout=180)
         if result.returncode:
             raise RuntimeError(result.stdout.decode(errors="replace")+result.stderr.decode(errors="replace"))
@@ -195,6 +201,16 @@ class Validation:
         size = (4 << 30) + (2 << 20) + 137
         if shutil.disk_usage(self.root).free < size * 5 + (6 << 30):
             raise RuntimeError("Large-file tests need at least 27 GiB free for their disposable files.")
+        if self.backend.windows and os.name != "nt":
+            powershell=Path("/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe")
+            process=subprocess.run([str(powershell),"-NoProfile","-ExecutionPolicy","Bypass","-File",
+                self.backend.host(ROOT/"scripts/windows_large_payload.ps1"),"-Root",self.backend.host(self.root),"-Token",self.token],
+                capture_output=True,timeout=600)
+            if process.returncode:raise RuntimeError(process.stderr.decode(errors="replace"))
+            result=json.loads(process.stdout)
+            self.payload_hash=sha(path)
+            assert result["size"]==size and result["sha256"]==self.payload_hash
+            return path,self.payload_hash
         digest = hashlib.sha256()
         block = bytearray(bytes(range(256)) * 4096)
         with path.open("xb") as stream:
@@ -389,6 +405,7 @@ class Validation:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--binary", type=Path, default=ROOT/"target/release/xetch")
+    parser.add_argument("--e2fsck",type=Path)
     parser.add_argument("--ext4-engine", choices=["fstool", "lwext4"])
     parser.add_argument("--ext4-worker", type=Path)
     parser.add_argument("--directory", type=Path, required=True)

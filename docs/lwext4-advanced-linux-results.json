@@ -1,0 +1,1634 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "backend": "Linux x64",
+  "backend_sha256": "5f3371e11e3c817085ceb04f18a09917fec30951b31100ce2085447cd65c1b79",
+  "validation_host": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.35",
+  "limits": [
+    "Process termination and returned I/O errors do not emulate physical power loss.",
+    "Interruption points start after ownership records are durably established.",
+    "Traditional inode/single-block xattrs; EA_INODE and RichACL inheritance are not supported.",
+    "Linux inode layout; dirty/recovery-required and unsupported feature profiles remain rejected.",
+    "The real kernel is Linux in WSL2; Windows editing is performed by native Windows backend/worker binaries.",
+    "No macOS/ARM64, real power failure, full-capacity/depth or physical partition write claim is made."
+  ],
+  "e2fsck": {
+    "version": "e2fsck 1.47.4 (6-Mar-2025)",
+    "sha256": "c15c582774c37c0f5790898cd1b9514ed7d76457971080baf28de81ff61756dd"
+  },
+  "ext4_engine": "lwext4",
+  "ext4_worker": {
+    "sha256": "49206dd64c98a3910798440ec0ca94058464f6623dc1749300122f97e97c0f9b",
+    "engine": "lwext4",
+    "protocol": 1,
+    "profile": "bsd-xattr-acl-v1",
+    "extents": true,
+    "xattr": true,
+    "acl": true,
+    "license": "BSD-3-Clause"
+  },
+  "validation_binary_sha256": "ce5162843d0bb0e85f45ed2d4266a0c9ef6aceded51fa719e8ebf0f45692ca44",
+  "fault_proxy_sha256": "5de62bddc69c69e5b94686fe6cce156625a914876f047dd5e433484572b0a797",
+  "protocol_probe_sha256": "f7cf772fedc3220532ccfa5164d298161eddae2418b5ad1fe157cfb6e249a9e1",
+  "journal_profile_progress": "ext4-2048-csum3-64",
+  "suite": "bsd-lwext4-xattrs-acls-large-files",
+  "summary": {
+    "cases": 23,
+    "check_groups": 330,
+    "random_operations": 2000,
+    "snapshot_kernel_roundtrips": 126,
+    "final_stress_kernel_checks": 2
+  },
+  "cases": [
+    {
+      "filesystem": "ext4",
+      "suite": "linux-kernel-roundtrip",
+      "status": "pass",
+      "checks": [
+        "system_format_and_kernel_write",
+        "backend_reads_system_file",
+        "backend_replaces_file_and_moves_directory",
+        "kernel_reads_export_and_writes_again",
+        "backend_reads_returned_file",
+        "kernel_mounts_backend_formatted_image",
+        "independent_fsck_after_each_phase",
+        "source_hash_unchanged",
+        "kernel_replays_actual_backend_journal_after_directory_rollback"
+      ],
+      "driver": "Linux 6.18.33.2-microsoft-standard-WSL2 ext4"
+    },
+    {
+      "suite": "differential",
+      "status": "pass",
+      "checks": [
+        "identical_kernel_source_for_both_engines",
+        "both_engines_replace_and_move",
+        "both_engines_read_both_exports",
+        "kernel_verifies_all_contents",
+        "hardlink_inode_preserved",
+        "32_bit_owner_and_mode_preserved",
+        "sparse_holes_and_unwritten_extents_read_zero",
+        "empty_preallocated_inode_deletion_frees_all_blocks",
+        "bsd_worker_preserves_existing_xattrs",
+        "explicit_fstool_control_retains_xattrs",
+        "independent_fsck",
+        "original_source_unchanged"
+      ]
+    },
+    {
+      "filesystem": "ext4",
+      "suite": "journal-profile",
+      "profile": "ext4-1024-csum2-64",
+      "status": "pass",
+      "block_size": 1024,
+      "journal_checksum_version": 2,
+      "journal_64bit": true,
+      "driver": "Linux 6.18.33.2-microsoft-standard-WSL2 ext4",
+      "kernel_upgrade": {
+        "before": 2,
+        "after": 3
+      },
+      "checks": [
+        "kernel_formats_and_writes_profile",
+        "exact_block_size_and_journal_feature_verified",
+        "independent_initial_fsck",
+        "backend_reads_kernel_file",
+        "backend_replaces_and_renames",
+        "writer_preserves_requested_journal_mode",
+        "independent_post_backend_fsck",
+        "rolled_back_directory_is_missing_before_kernel_replay",
+        "actual_kernel_replays_backend_journal",
+        "kernel_full_hash_read_and_feedback_write",
+        "backend_reads_kernel_feedback",
+        "backend_edits_returned_kernel_volume",
+        "independent_final_fsck",
+        "original_source_unchanged"
+      ]
+    },
+    {
+      "filesystem": "ext4",
+      "suite": "journal-profile",
+      "profile": "ext4-2048-csum2-64",
+      "status": "pass",
+      "block_size": 2048,
+      "journal_checksum_version": 2,
+      "journal_64bit": true,
+      "driver": "Linux 6.18.33.2-microsoft-standard-WSL2 ext4",
+      "kernel_upgrade": {
+        "before": 2,
+        "after": 3
+      },
+      "checks": [
+        "kernel_formats_and_writes_profile",
+        "exact_block_size_and_journal_feature_verified",
+        "independent_initial_fsck",
+        "backend_reads_kernel_file",
+        "backend_replaces_and_renames",
+        "writer_preserves_requested_journal_mode",
+        "independent_post_backend_fsck",
+        "rolled_back_directory_is_missing_before_kernel_replay",
+        "actual_kernel_replays_backend_journal",
+        "kernel_full_hash_read_and_feedback_write",
+        "backend_reads_kernel_feedback",
+        "backend_edits_returned_kernel_volume",
+        "independent_final_fsck",
+        "original_source_unchanged",
+        "kernel_rejects_bad_v2_payload_tag_with_valid_descriptor_crc"
+      ]
+    },
+    {
+      "filesystem": "ext4",
+      "suite": "journal-profile",
+      "profile": "ext4-4096-csum2-64",
+      "status": "pass",
+      "block_size": 4096,
+      "journal_checksum_version": 2,
+      "journal_64bit": true,
+      "driver": "Linux 6.18.33.2-microsoft-standard-WSL2 ext4",
+      "kernel_upgrade": {
+        "before": 2,
+        "after": 3
+      },
+      "checks": [
+        "kernel_formats_and_writes_profile",
+        "exact_block_size_and_journal_feature_verified",
+        "independent_initial_fsck",
+        "backend_reads_kernel_file",
+        "backend_replaces_and_renames",
+        "writer_preserves_requested_journal_mode",
+        "independent_post_backend_fsck",
+        "rolled_back_directory_is_missing_before_kernel_replay",
+        "actual_kernel_replays_backend_journal",
+        "kernel_full_hash_read_and_feedback_write",
+        "backend_reads_kernel_feedback",
+        "backend_edits_returned_kernel_volume",
+        "independent_final_fsck",
+        "original_source_unchanged"
+      ]
+    },
+    {
+      "filesystem": "ext4",
+      "suite": "journal-profile",
+      "profile": "ext4-2048-csum2-32",
+      "status": "pass",
+      "block_size": 2048,
+      "journal_checksum_version": 2,
+      "journal_64bit": false,
+      "driver": "Linux 6.18.33.2-microsoft-standard-WSL2 ext4",
+      "kernel_upgrade": {
+        "before": 2,
+        "after": 3
+      },
+      "checks": [
+        "kernel_formats_and_writes_profile",
+        "exact_block_size_and_journal_feature_verified",
+        "independent_initial_fsck",
+        "backend_reads_kernel_file",
+        "backend_replaces_and_renames",
+        "writer_preserves_requested_journal_mode",
+        "independent_post_backend_fsck",
+        "rolled_back_directory_is_missing_before_kernel_replay",
+        "actual_kernel_replays_backend_journal",
+        "kernel_full_hash_read_and_feedback_write",
+        "backend_reads_kernel_feedback",
+        "backend_edits_returned_kernel_volume",
+        "independent_final_fsck",
+        "original_source_unchanged"
+      ]
+    },
+    {
+      "filesystem": "ext4",
+      "suite": "journal-profile",
+      "profile": "ext4-2048-csum3-64",
+      "status": "pass",
+      "block_size": 2048,
+      "journal_checksum_version": 3,
+      "journal_64bit": true,
+      "driver": "Linux 6.18.33.2-microsoft-standard-WSL2 ext4",
+      "kernel_upgrade": {
+        "before": 3,
+        "after": 3
+      },
+      "checks": [
+        "kernel_formats_and_writes_profile",
+        "exact_block_size_and_journal_feature_verified",
+        "independent_initial_fsck",
+        "backend_reads_kernel_file",
+        "backend_replaces_and_renames",
+        "writer_preserves_requested_journal_mode",
+        "independent_post_backend_fsck",
+        "rolled_back_directory_is_missing_before_kernel_replay",
+        "actual_kernel_replays_backend_journal",
+        "kernel_full_hash_read_and_feedback_write",
+        "backend_reads_kernel_feedback",
+        "backend_edits_returned_kernel_volume",
+        "independent_final_fsck",
+        "original_source_unchanged"
+      ]
+    },
+    {
+      "suite": "deep-extents",
+      "status": "pass",
+      "initial_depth": 2,
+      "physical_runs": 1955,
+      "anchors": 6265,
+      "checks": [
+        "kernel_generates_depth_two_or_deeper_tree",
+        "candidate_reads_all_fragmented_payload",
+        "candidate_rejects_bad_external_node_crc",
+        "rejected_download_not_published",
+        "deep_truncate_and_new_allocation",
+        "kernel_hashes_all_anchors_and_new_payload",
+        "delete_frees_tree_and_data",
+        "independent_fsck_after_mutations",
+        "original_source_unchanged"
+      ]
+    },
+    {
+      "suite": "escaped-journal-metadata",
+      "status": "pass",
+      "block_size": 2048,
+      "checksum_version": 2,
+      "escaped_tags": [
+        {
+          "home_block": 139,
+          "journal_logical_block": 2,
+          "tag_flags": 1
+        },
+        {
+          "home_block": 139,
+          "journal_logical_block": 8,
+          "tag_flags": 1
+        },
+        {
+          "home_block": 139,
+          "journal_logical_block": 13,
+          "tag_flags": 9
+        },
+        {
+          "home_block": 139,
+          "journal_logical_block": 16,
+          "tag_flags": 9
+        }
+      ],
+      "checks": [
+        "valid_magic_prefixed_inode_table_metadata_is_journaled",
+        "actual_kernel_restores_rolled_back_home_inode_from_log",
+        "escaped_payload_checksum_and_commit_accepted",
+        "independent_fsck",
+        "original_source_unchanged"
+      ]
+    },
+    {
+      "suite": "escaped-journal-metadata",
+      "status": "pass",
+      "block_size": 4096,
+      "checksum_version": 3,
+      "escaped_tags": [
+        {
+          "home_block": 50,
+          "journal_logical_block": 2,
+          "tag_flags": 1
+        },
+        {
+          "home_block": 50,
+          "journal_logical_block": 7,
+          "tag_flags": 1
+        },
+        {
+          "home_block": 50,
+          "journal_logical_block": 12,
+          "tag_flags": 9
+        },
+        {
+          "home_block": 50,
+          "journal_logical_block": 15,
+          "tag_flags": 9
+        }
+      ],
+      "checks": [
+        "valid_magic_prefixed_inode_table_metadata_is_journaled",
+        "actual_kernel_restores_rolled_back_home_inode_from_log",
+        "escaped_payload_checksum_and_commit_accepted",
+        "independent_fsck",
+        "original_source_unchanged"
+      ]
+    },
+    {
+      "filesystem": "ext4",
+      "suite": "commit-boundaries",
+      "status": "pass",
+      "checks": [
+        {
+          "operation": "edit",
+          "point": "edit.pending_durable",
+          "mode": "error",
+          "result": "old",
+          "status": "pass"
+        },
+        {
+          "operation": "edit",
+          "point": "edit.pending_durable",
+          "mode": "pause",
+          "result": "old",
+          "status": "pass"
+        },
+        {
+          "operation": "edit",
+          "point": "edit.layer_synced",
+          "mode": "error",
+          "result": "old",
+          "status": "pass"
+        },
+        {
+          "operation": "edit",
+          "point": "edit.layer_synced",
+          "mode": "pause",
+          "result": "old",
+          "status": "pass"
+        },
+        {
+          "operation": "edit",
+          "point": "edit.layer_kept",
+          "mode": "error",
+          "result": "old",
+          "status": "pass"
+        },
+        {
+          "operation": "edit",
+          "point": "edit.layer_kept",
+          "mode": "pause",
+          "result": "old",
+          "status": "pass"
+        },
+        {
+          "operation": "edit",
+          "point": "manifest.temporary_synced",
+          "mode": "error",
+          "result": "old",
+          "status": "pass"
+        },
+        {
+          "operation": "edit",
+          "point": "manifest.temporary_synced",
+          "mode": "pause",
+          "result": "old",
+          "status": "pass"
+        },
+        {
+          "operation": "edit",
+          "point": "manifest.replaced",
+          "mode": "error",
+          "result": "new",
+          "status": "pass"
+        },
+        {
+          "operation": "edit",
+          "point": "manifest.replaced",
+          "mode": "pause",
+          "result": "new",
+          "status": "pass"
+        },
+        {
+          "operation": "edit",
+          "point": "manifest.directory_synced",
+          "mode": "error",
+          "result": "new",
+          "status": "pass"
+        },
+        {
+          "operation": "edit",
+          "point": "manifest.directory_synced",
+          "mode": "pause",
+          "result": "new",
+          "status": "pass"
+        },
+        {
+          "operation": "create",
+          "point": "output.ready",
+          "mode": "error",
+          "published_before_retry": false,
+          "status": "pass"
+        },
+        {
+          "operation": "create",
+          "point": "output.ready",
+          "mode": "pause",
+          "published_before_retry": false,
+          "status": "pass"
+        },
+        {
+          "operation": "create",
+          "point": "create.allocated",
+          "mode": "error",
+          "published_before_retry": false,
+          "status": "pass"
+        },
+        {
+          "operation": "create",
+          "point": "create.allocated",
+          "mode": "pause",
+          "published_before_retry": false,
+          "status": "pass"
+        },
+        {
+          "operation": "create",
+          "point": "create.formatted",
+          "mode": "error",
+          "published_before_retry": false,
+          "status": "pass"
+        },
+        {
+          "operation": "create",
+          "point": "create.formatted",
+          "mode": "pause",
+          "published_before_retry": false,
+          "status": "pass"
+        },
+        {
+          "operation": "create",
+          "point": "qemu.convert_started",
+          "mode": "error",
+          "published_before_retry": false,
+          "status": "pass"
+        },
+        {
+          "operation": "create",
+          "point": "qemu.convert_started",
+          "mode": "pause",
+          "published_before_retry": false,
+          "status": "pass"
+        },
+        {
+          "operation": "create",
+          "point": "publish.converted",
+          "mode": "error",
+          "published_before_retry": false,
+          "status": "pass"
+        },
+        {
+          "operation": "create",
+          "point": "publish.converted",
+          "mode": "pause",
+          "published_before_retry": false,
+          "status": "pass"
+        },
+        {
+          "operation": "create",
+          "point": "publish.before_publish",
+          "mode": "error",
+          "published_before_retry": false,
+          "status": "pass"
+        },
+        {
+          "operation": "create",
+          "point": "publish.before_publish",
+          "mode": "pause",
+          "published_before_retry": false,
+          "status": "pass"
+        },
+        {
+          "operation": "create",
+          "point": "publish.published",
+          "mode": "error",
+          "published_before_retry": true,
+          "status": "pass"
+        },
+        {
+          "operation": "create",
+          "point": "publish.published",
+          "mode": "pause",
+          "published_before_retry": true,
+          "status": "pass"
+        },
+        {
+          "operation": "create",
+          "point": "publish.directory_synced",
+          "mode": "error",
+          "published_before_retry": true,
+          "status": "pass"
+        },
+        {
+          "operation": "create",
+          "point": "publish.directory_synced",
+          "mode": "pause",
+          "published_before_retry": true,
+          "status": "pass"
+        },
+        {
+          "operation": "apply",
+          "point": "output.ready",
+          "mode": "error",
+          "published_before_retry": false,
+          "status": "pass"
+        },
+        {
+          "operation": "apply",
+          "point": "output.ready",
+          "mode": "pause",
+          "published_before_retry": false,
+          "status": "pass"
+        },
+        {
+          "operation": "apply",
+          "point": "qemu.convert_started",
+          "mode": "error",
+          "published_before_retry": false,
+          "status": "pass"
+        },
+        {
+          "operation": "apply",
+          "point": "qemu.convert_started",
+          "mode": "pause",
+          "published_before_retry": false,
+          "status": "pass"
+        },
+        {
+          "operation": "apply",
+          "point": "publish.converted",
+          "mode": "error",
+          "published_before_retry": false,
+          "status": "pass"
+        },
+        {
+          "operation": "apply",
+          "point": "publish.converted",
+          "mode": "pause",
+          "published_before_retry": false,
+          "status": "pass"
+        },
+        {
+          "operation": "apply",
+          "point": "publish.before_publish",
+          "mode": "error",
+          "published_before_retry": false,
+          "status": "pass"
+        },
+        {
+          "operation": "apply",
+          "point": "publish.before_publish",
+          "mode": "pause",
+          "published_before_retry": false,
+          "status": "pass"
+        },
+        {
+          "operation": "apply",
+          "point": "publish.published",
+          "mode": "error",
+          "published_before_retry": true,
+          "status": "pass"
+        },
+        {
+          "operation": "apply",
+          "point": "publish.published",
+          "mode": "pause",
+          "published_before_retry": true,
+          "status": "pass"
+        },
+        {
+          "operation": "apply",
+          "point": "publish.directory_synced",
+          "mode": "error",
+          "published_before_retry": true,
+          "status": "pass"
+        },
+        {
+          "operation": "apply",
+          "point": "publish.directory_synced",
+          "mode": "pause",
+          "published_before_retry": true,
+          "status": "pass"
+        },
+        {
+          "operation": "file-get",
+          "point": "output.ready",
+          "mode": "error",
+          "published_before_retry": false,
+          "status": "pass"
+        },
+        {
+          "operation": "file-get",
+          "point": "output.ready",
+          "mode": "pause",
+          "published_before_retry": false,
+          "status": "pass"
+        },
+        {
+          "operation": "file-get",
+          "point": "file_get.copied",
+          "mode": "error",
+          "published_before_retry": false,
+          "status": "pass"
+        },
+        {
+          "operation": "file-get",
+          "point": "file_get.copied",
+          "mode": "pause",
+          "published_before_retry": false,
+          "status": "pass"
+        },
+        {
+          "operation": "file-get",
+          "point": "publish.before_publish",
+          "mode": "error",
+          "published_before_retry": false,
+          "status": "pass"
+        },
+        {
+          "operation": "file-get",
+          "point": "publish.before_publish",
+          "mode": "pause",
+          "published_before_retry": false,
+          "status": "pass"
+        },
+        {
+          "operation": "file-get",
+          "point": "publish.published",
+          "mode": "error",
+          "published_before_retry": true,
+          "status": "pass"
+        },
+        {
+          "operation": "file-get",
+          "point": "publish.published",
+          "mode": "pause",
+          "published_before_retry": true,
+          "status": "pass"
+        },
+        {
+          "operation": "file-get",
+          "point": "publish.directory_synced",
+          "mode": "error",
+          "published_before_retry": true,
+          "status": "pass"
+        },
+        {
+          "operation": "file-get",
+          "point": "publish.directory_synced",
+          "mode": "pause",
+          "published_before_retry": true,
+          "status": "pass"
+        },
+        {
+          "operation": "normal_build_ignores_hooks",
+          "status": "pass"
+        },
+        {
+          "operation": "concurrent_publisher_is_rejected",
+          "status": "pass"
+        },
+        {
+          "operation": "unknown_staging_content_preserved",
+          "status": "pass"
+        },
+        {
+          "operation": "publication_never_clobbers_racing_output",
+          "status": "pass"
+        },
+        {
+          "operation": "concurrent_workspace_is_rejected",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "suite": "worker-faults",
+      "status": "pass",
+      "checks": [
+        {
+          "mode": "oversized",
+          "status": "pass"
+        },
+        {
+          "mode": "out_of_bounds",
+          "status": "pass"
+        },
+        {
+          "mode": "write_read_only",
+          "status": "pass"
+        },
+        {
+          "mode": "wrong_magic",
+          "status": "pass"
+        },
+        {
+          "mode": "exit",
+          "status": "pass"
+        },
+        {
+          "mode": "old_profile",
+          "status": "pass"
+        },
+        {
+          "mode": "worker_only_kill",
+          "point": "ext4_worker.started",
+          "status": "pass"
+        },
+        {
+          "mode": "worker_only_kill",
+          "point": "ext4_worker.write_ack",
+          "status": "pass"
+        },
+        {
+          "mode": "continued_edit_after_worker_crashes",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "filesystem": "ext4",
+      "suite": "fault-recovery",
+      "status": "pass",
+      "checks": [
+        "eio: original/checkpoint/data preserved, helpers stopped, abandoned edit reclaimed, independent fsck",
+        "enospc: original/checkpoint/data preserved, helpers stopped, abandoned edit reclaimed, independent fsck",
+        "flush: original/checkpoint/data preserved, helpers stopped, abandoned edit reclaimed, independent fsck",
+        "qsd-kill: original/checkpoint/data preserved, helpers stopped, abandoned edit reclaimed, independent fsck",
+        "backend-kill: original/checkpoint/data preserved, helpers stopped, abandoned edit reclaimed, independent fsck",
+        "committed_layer_survives_stale_pending_marker",
+        "new_edit_and_export_succeed_after_all_recoveries"
+      ]
+    },
+    {
+      "suite": "bsd-xattrs-posix-acls",
+      "status": "pass",
+      "block_size": 1024,
+      "inode_size": 256,
+      "metadata_checksum": true,
+      "source_shared_xattr_refcount": 2,
+      "driver": "Linux 6.18.33.2-microsoft-standard-WSL2 ext4",
+      "checks": [
+        "legacy_signed_hash_read_and_modern_unsigned_hash_write",
+        "utf8_external_attribute_names_and_binary_values",
+        "kernel_creates_inline_external_binary_xattrs_and_acls",
+        "kernel_generates_shared_external_block",
+        "bsd_get_and_aligned_list_api",
+        "bsd_set_replace_remove_empty_values",
+        "bsd_external_block_copy_on_write",
+        "out_of_space_preserves_existing_attributes",
+        "kernel_reads_bsd_attribute_mutations",
+        "overwrite_rename_preserve_xattrs_acls_hardlinks_owners",
+        "new_file_access_acl_mode_filter",
+        "directory_access_and_default_acl_inheritance",
+        "nested_default_acl_and_setgid_group_inheritance",
+        "last_link_deletion_decrements_shared_block_reference",
+        "unique_external_block_and_acl_directory_cleanup",
+        "independent_fsck_after_each_phase",
+        "original_source_hash_unchanged",
+        "malformed_default_acl_rejected_without_checkpoint_change",
+        "bad_xattr_crc_rejected_without_checkpoint_or_source_change",
+        "legacy_zero_extra_isize_inode_uses_external_attrs_and_short_checksum"
+      ]
+    },
+    {
+      "suite": "bsd-xattrs-posix-acls",
+      "status": "pass",
+      "block_size": 2048,
+      "inode_size": 256,
+      "metadata_checksum": true,
+      "source_shared_xattr_refcount": 2,
+      "driver": "Linux 6.18.33.2-microsoft-standard-WSL2 ext4",
+      "checks": [
+        "legacy_signed_hash_read_and_modern_unsigned_hash_write",
+        "utf8_external_attribute_names_and_binary_values",
+        "kernel_creates_inline_external_binary_xattrs_and_acls",
+        "kernel_generates_shared_external_block",
+        "bsd_get_and_aligned_list_api",
+        "bsd_set_replace_remove_empty_values",
+        "bsd_external_block_copy_on_write",
+        "out_of_space_preserves_existing_attributes",
+        "kernel_reads_bsd_attribute_mutations",
+        "overwrite_rename_preserve_xattrs_acls_hardlinks_owners",
+        "new_file_access_acl_mode_filter",
+        "directory_access_and_default_acl_inheritance",
+        "nested_default_acl_and_setgid_group_inheritance",
+        "last_link_deletion_decrements_shared_block_reference",
+        "unique_external_block_and_acl_directory_cleanup",
+        "independent_fsck_after_each_phase",
+        "original_source_hash_unchanged",
+        "malformed_default_acl_rejected_without_checkpoint_change",
+        "bad_xattr_crc_rejected_without_checkpoint_or_source_change",
+        "legacy_zero_extra_isize_inode_uses_external_attrs_and_short_checksum"
+      ]
+    },
+    {
+      "suite": "bsd-xattrs-posix-acls",
+      "status": "pass",
+      "block_size": 4096,
+      "inode_size": 256,
+      "metadata_checksum": true,
+      "source_shared_xattr_refcount": 2,
+      "driver": "Linux 6.18.33.2-microsoft-standard-WSL2 ext4",
+      "checks": [
+        "legacy_signed_hash_read_and_modern_unsigned_hash_write",
+        "utf8_external_attribute_names_and_binary_values",
+        "kernel_creates_inline_external_binary_xattrs_and_acls",
+        "kernel_generates_shared_external_block",
+        "bsd_get_and_aligned_list_api",
+        "bsd_set_replace_remove_empty_values",
+        "bsd_external_block_copy_on_write",
+        "out_of_space_preserves_existing_attributes",
+        "kernel_reads_bsd_attribute_mutations",
+        "overwrite_rename_preserve_xattrs_acls_hardlinks_owners",
+        "new_file_access_acl_mode_filter",
+        "directory_access_and_default_acl_inheritance",
+        "nested_default_acl_and_setgid_group_inheritance",
+        "last_link_deletion_decrements_shared_block_reference",
+        "unique_external_block_and_acl_directory_cleanup",
+        "independent_fsck_after_each_phase",
+        "original_source_hash_unchanged",
+        "malformed_default_acl_rejected_without_checkpoint_change",
+        "bad_xattr_crc_rejected_without_checkpoint_or_source_change",
+        "legacy_zero_extra_isize_inode_uses_external_attrs_and_short_checksum"
+      ]
+    },
+    {
+      "suite": "bsd-xattrs-posix-acls",
+      "status": "pass",
+      "block_size": 4096,
+      "inode_size": 128,
+      "metadata_checksum": true,
+      "source_shared_xattr_refcount": 2,
+      "driver": "Linux 6.18.33.2-microsoft-standard-WSL2 ext4",
+      "checks": [
+        "legacy_signed_hash_read_and_modern_unsigned_hash_write",
+        "utf8_external_attribute_names_and_binary_values",
+        "kernel_creates_inline_external_binary_xattrs_and_acls",
+        "kernel_generates_shared_external_block",
+        "bsd_get_and_aligned_list_api",
+        "bsd_set_replace_remove_empty_values",
+        "bsd_external_block_copy_on_write",
+        "out_of_space_preserves_existing_attributes",
+        "kernel_reads_bsd_attribute_mutations",
+        "overwrite_rename_preserve_xattrs_acls_hardlinks_owners",
+        "new_file_access_acl_mode_filter",
+        "directory_access_and_default_acl_inheritance",
+        "nested_default_acl_and_setgid_group_inheritance",
+        "last_link_deletion_decrements_shared_block_reference",
+        "unique_external_block_and_acl_directory_cleanup",
+        "independent_fsck_after_each_phase",
+        "original_source_hash_unchanged",
+        "malformed_default_acl_rejected_without_checkpoint_change",
+        "bad_xattr_crc_rejected_without_checkpoint_or_source_change"
+      ]
+    },
+    {
+      "suite": "bsd-xattrs-posix-acls",
+      "status": "pass",
+      "block_size": 4096,
+      "inode_size": 256,
+      "metadata_checksum": false,
+      "source_shared_xattr_refcount": 2,
+      "driver": "Linux 6.18.33.2-microsoft-standard-WSL2 ext4",
+      "checks": [
+        "legacy_signed_hash_read_and_modern_unsigned_hash_write",
+        "utf8_external_attribute_names_and_binary_values",
+        "kernel_creates_inline_external_binary_xattrs_and_acls",
+        "kernel_generates_shared_external_block",
+        "bsd_get_and_aligned_list_api",
+        "bsd_set_replace_remove_empty_values",
+        "bsd_external_block_copy_on_write",
+        "out_of_space_preserves_existing_attributes",
+        "kernel_reads_bsd_attribute_mutations",
+        "overwrite_rename_preserve_xattrs_acls_hardlinks_owners",
+        "new_file_access_acl_mode_filter",
+        "directory_access_and_default_acl_inheritance",
+        "nested_default_acl_and_setgid_group_inheritance",
+        "last_link_deletion_decrements_shared_block_reference",
+        "unique_external_block_and_acl_directory_cleanup",
+        "independent_fsck_after_each_phase",
+        "original_source_hash_unchanged",
+        "malformed_default_acl_rejected_without_checkpoint_change",
+        "legacy_zero_extra_isize_inode_uses_external_attrs_and_short_checksum"
+      ]
+    },
+    {
+      "suite": "sparse-large-file-feature",
+      "status": "pass",
+      "logical_size": 4297064585,
+      "checks": [
+        "large_file_feature_initially_absent",
+        "bsd_tail_write_above_4gib_sets_large_file_feature",
+        "u64_file_list_size",
+        "kernel_zero_holes_across_2gib_and_4gib",
+        "kernel_reads_allocated_tail",
+        "independent_fsck",
+        "source_hash_unchanged"
+      ]
+    },
+    {
+      "filesystem": "ext4",
+      "suite": "fragmented-random-stress",
+      "status": "pass",
+      "workload_version": 2,
+      "seed": 24301,
+      "operations": 1000,
+      "allocation_churn_guard": "pass",
+      "operation_counts": {
+        "replace": 120,
+        "rename-directory": 149,
+        "put": 207,
+        "rename-file": 103,
+        "mkdir": 79,
+        "reject": 122,
+        "rmdir": 108,
+        "remove": 112
+      },
+      "executed_method_counts": {
+        "file.put": 449,
+        "file.list": 53,
+        "file.rename": 251,
+        "file.mkdir": 79,
+        "file.remove": 168
+      },
+      "expected_rejections": 122,
+      "snapshot_roundtrips": 63,
+      "checkpoint_every": 16,
+      "rpc_requests": 1191,
+      "anchors": 403,
+      "physical_fragment_runs": 45,
+      "checks": [
+        "actual_interleaved_allocations_and_hole_reuse",
+        "independently_verified_physical_fragmentation",
+        "seeded_operation_log",
+        "exact_namespace_and_all_payloads_against_reference_model",
+        "rejected_operations_preserve_manifest",
+        "all_anchors_and_fragmented_file_hashes_preserved",
+        "independent_fsck_each_snapshot",
+        "real_kernel_reads_all_files_and_writes_feedback",
+        "continued_backend_edits_after_kernel_writeback",
+        "repeated_compaction_and_workspace_reopen",
+        "no_pending_manifest_or_edit_leaks",
+        "original_source_hash_unchanged"
+      ],
+      "operation_log": {
+        "sha256": "4bd5f841e8e43ba6b2c76d017d7f9b41f6652ff0a9ca535e89201740821da694",
+        "entries": 1000,
+        "relative_path": "ext4-stress/seed-24301/operations.jsonl",
+        "contiguous_steps_and_counters_verified": true,
+        "upload_size_and_hash_present": true
+      }
+    },
+    {
+      "filesystem": "ext4",
+      "suite": "fragmented-random-stress",
+      "status": "pass",
+      "workload_version": 2,
+      "seed": 12648430,
+      "operations": 1000,
+      "allocation_churn_guard": "pass",
+      "operation_counts": {
+        "replace": 121,
+        "rename-directory": 140,
+        "remove": 119,
+        "rmdir": 107,
+        "rename-file": 124,
+        "put": 212,
+        "mkdir": 74,
+        "reject": 103
+      },
+      "executed_method_counts": {
+        "file.put": 436,
+        "file.list": 63,
+        "file.remove": 170,
+        "file.rename": 257,
+        "file.mkdir": 74
+      },
+      "expected_rejections": 103,
+      "snapshot_roundtrips": 63,
+      "checkpoint_every": 16,
+      "rpc_requests": 1191,
+      "anchors": 403,
+      "physical_fragment_runs": 45,
+      "checks": [
+        "actual_interleaved_allocations_and_hole_reuse",
+        "independently_verified_physical_fragmentation",
+        "seeded_operation_log",
+        "exact_namespace_and_all_payloads_against_reference_model",
+        "rejected_operations_preserve_manifest",
+        "all_anchors_and_fragmented_file_hashes_preserved",
+        "independent_fsck_each_snapshot",
+        "real_kernel_reads_all_files_and_writes_feedback",
+        "continued_backend_edits_after_kernel_writeback",
+        "repeated_compaction_and_workspace_reopen",
+        "no_pending_manifest_or_edit_leaks",
+        "original_source_hash_unchanged"
+      ],
+      "operation_log": {
+        "sha256": "a1e254a73f3f47b95ac54587377866352cf0932618a2f953074f6725d8026373",
+        "entries": 1000,
+        "relative_path": "ext4-stress/seed-12648430/operations.jsonl",
+        "contiguous_steps_and_counters_verified": true,
+        "upload_size_and_hash_present": true
+      }
+    },
+    {
+      "suite": "xattr-acl-commit-faults",
+      "status": "pass",
+      "checks": [
+        {
+          "operation": "mkdir",
+          "point": "edit.layer_synced",
+          "manifest": "old",
+          "business_code": "io_error",
+          "status": "pass"
+        },
+        {
+          "operation": "mkdir",
+          "point": "manifest.replaced",
+          "manifest": "new",
+          "business_code": "commit_uncertain",
+          "status": "pass"
+        },
+        {
+          "operation": "remove",
+          "point": "edit.layer_synced",
+          "manifest": "old",
+          "business_code": "io_error",
+          "status": "pass"
+        },
+        {
+          "operation": "remove",
+          "point": "manifest.replaced",
+          "manifest": "new",
+          "business_code": "commit_uncertain",
+          "status": "pass"
+        },
+        "default_acl_external_allocation_survives_commit_or_rolls_back",
+        "shared_xattr_release_survives_commit_or_rolls_back",
+        "real_kernel_verifies_attributes_after_each_boundary",
+        "independent_fsck_after_each_boundary",
+        "original_source_unchanged"
+      ]
+    },
+    {
+      "filesystem": "ext4",
+      "suite": "large-file",
+      "status": "pass",
+      "file_size": 4297064585,
+      "sha256": "de0b77b0fa8a6692120e8cfefac14f713495e24ea00559ecf2441d83238df2a9",
+      "driver": "Linux 6.18.33.2-microsoft-standard-WSL2 ext4",
+      "checks": [
+        "full_nonzero_payload_above_4gib",
+        "create_and_list_exact_u64_size",
+        "vmdk_full_sha256_readback",
+        "large_to_small_truncation",
+        "small_to_large_existing_inode_overwrite",
+        "rename_large_file",
+        "kernel_full_sha256_read_and_write",
+        "backend_full_sha256_after_kernel_roundtrip",
+        "independent_fsck",
+        "source_hash_unchanged"
+      ]
+    }
+  ],
+  "source_reports": [
+    {
+      "suite": "interoperability",
+      "path": "artifacts/lwext4-v3-linux-final-interoperability-results.json",
+      "sha256": "16348a8db2ae9cabe8f70a00970666d75eed9e34acebdc7a18802b481a9bdf26",
+      "started_at": "2026-11-16T10:42:20.597487+00:00",
+      "finished_at": "2026-11-16T10:42:43.361159+00:00"
+    },
+    {
+      "suite": "extents",
+      "path": "artifacts/lwext4-v3-linux-final-extents-results.json",
+      "sha256": "4584ec77c74301cbeffd0362c1e1e677960f4b192873e5cc38b3d6bb0a9deb46",
+      "started_at": "2026-11-16T10:42:43.524225+00:00",
+      "finished_at": "2026-11-16T10:44:09.955982+00:00"
+    },
+    {
+      "suite": "journal-escape",
+      "path": "artifacts/lwext4-v3-linux-final-journal-escape-results.json",
+      "sha256": "8d8c465246aee4d0ce878151efbe0332024d34d9c4227fefa41edf28a19f2f8d",
+      "started_at": "2026-11-16T10:44:10.080879+00:00",
+      "finished_at": "2026-11-16T10:44:12.589391+00:00"
+    },
+    {
+      "suite": "boundaries",
+      "path": "artifacts/lwext4-v3-linux-final-boundaries-results.json",
+      "sha256": "28cfb4849e8e4b8682b68eb2523b6d7fad8a1cde1df64efc5f09faba31e50bff",
+      "started_at": "2026-11-16T10:44:12.721209+00:00",
+      "finished_at": "2026-11-16T10:44:28.007439+00:00"
+    },
+    {
+      "suite": "io-faults",
+      "path": "artifacts/lwext4-v3-linux-final-io-faults-results.json",
+      "sha256": "5d1ab5d4adca20429afe237933a173ef68d40ec38a613f2e354a74956b4a1cb3",
+      "started_at": "2026-11-16T10:44:28.136904+00:00",
+      "finished_at": "2026-11-16T10:44:30.761533+00:00"
+    },
+    {
+      "suite": "metadata",
+      "path": "artifacts/lwext4-v3-linux-final-metadata-results.json",
+      "sha256": "7cdd6184c824549ec08bdd22ad5a86ee00dc7385752d0654683e3c79b722bd93",
+      "started_at": "2026-11-16T10:39:38.884964+00:00",
+      "finished_at": "2026-11-16T10:40:10.452291+00:00"
+    },
+    {
+      "suite": "stress",
+      "path": "artifacts/lwext4-v3-linux-final-stress-results.json",
+      "sha256": "c56419a793d15d49c5f78d5905341d3d5488214e38d00e47af0a3523a2b8808c",
+      "started_at": "2026-11-16T10:44:30.890671+00:00",
+      "finished_at": "2026-11-16T10:56:36.662938+00:00"
+    },
+    {
+      "suite": "metadata-faults",
+      "path": "artifacts/lwext4-v4-linux-final-metadata-faults-results.json",
+      "sha256": "ff8c9eeec13e3a122d68f9e01b6e30e2dfd95d5f96b98bf6ea4e4b3b5b194ae3",
+      "started_at": "2026-11-16T10:59:19.000829+00:00",
+      "finished_at": "2026-11-16T10:59:23.503254+00:00"
+    },
+    {
+      "suite": "dense-large",
+      "path": "artifacts/lwext4-v3-linux-large-results.json",
+      "sha256": "83bc531dc5303e89386f1cc1226b96e8aae503128d992bdc366bd1e61a1ca4bf",
+      "started_at": "2026-11-16T10:42:20.648910+00:00",
+      "finished_at": "2026-11-16T10:50:54.619802+00:00"
+    }
+  ],
+  "started_at": "2026-11-16T10:39:38.884964+00:00",
+  "finished_at": "2026-11-16T10:59:23.503254+00:00",
+  "aggregated_at": "2026-11-16T11:34:59.681418+00:00",
+  "build_provenance": {
+    "schema_version": 1,
+    "engine": "lwext4",
+    "profile": "bsd-xattr-acl-v1",
+    "protocol": 1,
+    "target": "native",
+    "license": "BSD-3-Clause",
+    "upstream": "https://github.com/gkostka/lwext4",
+    "revision": "58bcf89a121b72d4fb66334f1693d3b30e4cb9c5",
+    "excluded_gpl_sources": [
+      "src/ext4_extent.c",
+      "src/ext4_xattr.c"
+    ],
+    "compiler": "cc",
+    "flags": [
+      "-std=c11",
+      "-O2",
+      "-g",
+      "-D_FILE_OFFSET_BITS=64",
+      "-DCONFIG_USE_DEFAULT_CFG=1",
+      "-DCONFIG_DEBUG_PRINTF=0",
+      "-DCONFIG_DEBUG_ASSERT=0",
+      "-DCONFIG_HAVE_OWN_OFLAGS=1",
+      "-DCONFIG_HAVE_OWN_ERRNO=0",
+      "-DCONFIG_BLOCK_DEV_CACHE_SIZE=64",
+      "-DCONFIG_EXTENTS_ENABLE=1",
+      "-DCONFIG_XATTR_ENABLE=1",
+      "-I${SOURCE_ROOT}/vendor/lwext4/include"
+    ],
+    "worker_sha256": "49206dd64c98a3910798440ec0ca94058464f6623dc1749300122f97e97c0f9b",
+    "compile_inputs": [
+      {
+        "path": "vendor/lwext4/src/ext4.c",
+        "sha256": "80a20f8416a14d2f4526a3269bf1a5d8cfd77430e1cd69a315ed73e247a8d7f0"
+      },
+      {
+        "path": "vendor/lwext4/src/ext4_balloc.c",
+        "sha256": "d588d8222b3ef94203ad5654023a88fca12c94576ad08082195d27c02248d425"
+      },
+      {
+        "path": "vendor/lwext4/src/ext4_bcache.c",
+        "sha256": "98db84d8fd6523627883cd741cd3357a10f884583f106a3760a11ef6bcd740d7"
+      },
+      {
+        "path": "vendor/lwext4/src/ext4_bitmap.c",
+        "sha256": "917c51fb9144a3a9af10922687ea47b771c362d00b19b150def0753e1d250c6a"
+      },
+      {
+        "path": "vendor/lwext4/src/ext4_block_group.c",
+        "sha256": "d650c32025c724c3130f080464de3c98ae5e7c574074df731773cf7a0310cf2b"
+      },
+      {
+        "path": "vendor/lwext4/src/ext4_blockdev.c",
+        "sha256": "a17158b9e7357d2e802df45a80ce878e33bf67bbc5ccc9b404abddd511a1c7d9"
+      },
+      {
+        "path": "vendor/lwext4/src/ext4_crc32.c",
+        "sha256": "79fd372cc84b9dce6b6ca0631c4f2589cdecfcef142997ec003121e6b4f5ae2b"
+      },
+      {
+        "path": "vendor/lwext4/src/ext4_debug.c",
+        "sha256": "c3a1dfb96b26c11af56e96e18c5f2f33372447e6c278606aac975af512ec701a"
+      },
+      {
+        "path": "vendor/lwext4/src/ext4_dir.c",
+        "sha256": "c364e75c8ccea195267ad6e4dbb24bb328ec42af8303144e967c399bad989e8d"
+      },
+      {
+        "path": "vendor/lwext4/src/ext4_dir_idx.c",
+        "sha256": "94c74b8face52c7c0b8af1ea5d30c2ccf56032c0b781c2d427f6186d875f6dba"
+      },
+      {
+        "path": "vendor/lwext4/src/ext4_fs.c",
+        "sha256": "4cbf8613b0b7cc328ae77d695878627a114be415b08dab9f942cb5576e196a3f"
+      },
+      {
+        "path": "vendor/lwext4/src/ext4_hash.c",
+        "sha256": "c4997d3b979b200a1f06e7400618dd5067b7f67f10549ce0356be51ab0248304"
+      },
+      {
+        "path": "vendor/lwext4/src/ext4_ialloc.c",
+        "sha256": "4a7873fd55f21ae1454effc2daa6ee8477e1b2754a6cd11106c39988827f612a"
+      },
+      {
+        "path": "vendor/lwext4/src/ext4_inode.c",
+        "sha256": "b8a6cb41f6250cbfc081d49ae04d2a2eab44e971e2880a6a4d949b23214f6883"
+      },
+      {
+        "path": "vendor/lwext4/src/ext4_journal.c",
+        "sha256": "c8698d114675ffdba7a2b1c0935e1d78da00264e5c1e78e78f602ea23cd6d304"
+      },
+      {
+        "path": "vendor/lwext4/src/ext4_mbr.c",
+        "sha256": "c8c3933ba5cfa330b1fdd6a29f2a049c4a3b5a329ef9f22c7d9883c5180bf8d0"
+      },
+      {
+        "path": "vendor/lwext4/src/ext4_mkfs.c",
+        "sha256": "018c843f38f02a5fb36b1129deb1287fda30cccdf4163a2980b9026aa6ea1a33"
+      },
+      {
+        "path": "vendor/lwext4/src/ext4_super.c",
+        "sha256": "cabed718012e8e8476a5e4ab71772da5acca05e0a6fef63a888052b6ab68e45a"
+      },
+      {
+        "path": "vendor/lwext4/src/ext4_trans.c",
+        "sha256": "ed9078d54245ab9128510bdc69de58a4bc8cd665d8176adc5af79d39f3814728"
+      },
+      {
+        "path": "native/ext4-worker/extents.c",
+        "sha256": "ecd061bf95227879d12ef85f9eb96f6487b88ff570cbe3f670f02895e8f520e3"
+      },
+      {
+        "path": "native/ext4-worker/xattrs.c",
+        "sha256": "cc3386f2b4993cc71ce95c31fa3774d5b1a502604ed7f9e9b6fb34e1d8ac3448"
+      },
+      {
+        "path": "native/ext4-worker/acls.c",
+        "sha256": "85e5b1f50afb4d280b07d5fdc7549cc0876d2cd2931e6ef73688bc2f0cd97b26"
+      },
+      {
+        "path": "native/ext4-worker/worker.c",
+        "sha256": "d593e2bfa4565fecaba9c45dd860b03ec0ed36ef7bb31f0f735d68a8dcc2b7ff"
+      }
+    ],
+    "source_inputs": [
+      {
+        "path": "vendor/lwext4/include/ext4.h",
+        "sha256": "26049dd1dae003a55d98c2112ba44d2837532339ff0051f853664f10e41fedfa"
+      },
+      {
+        "path": "vendor/lwext4/include/ext4_balloc.h",
+        "sha256": "3503f0b9411df125ec800172d0d83aa9a88ac2443077d874cee288b43bca8076"
+      },
+      {
+        "path": "vendor/lwext4/include/ext4_bcache.h",
+        "sha256": "ace70ac745742c0489870352fadcd9e5632e21c08a6ed16ea02cc0bfb9d256c4"
+      },
+      {
+        "path": "vendor/lwext4/include/ext4_bitmap.h",
+        "sha256": "a8fdb10d0a13bd8351b3b2b43bf00c307d0834b809c0a6c9b9dc9745b4f181cd"
+      },
+      {
+        "path": "vendor/lwext4/include/ext4_block_group.h",
+        "sha256": "9e225684211de9ff823feb828e5a7669927cd02144b6f35dc2defc16e2f2700f"
+      },
+      {
+        "path": "vendor/lwext4/include/ext4_blockdev.h",
+        "sha256": "1e213722709ef93078262650ae09476c5030cf43dc51294d5f6f4d289729d101"
+      },
+      {
+        "path": "vendor/lwext4/include/ext4_config.h",
+        "sha256": "ed1c0b92341b097a95f9e88cc83d148dc5d779875fe216c9c4b833ef0c0149bf"
+      },
+      {
+        "path": "vendor/lwext4/include/ext4_crc32.h",
+        "sha256": "32f6789873f21a73b41a2fe535f43a6ade9ea9eea0270bc47500dd2968859b1a"
+      },
+      {
+        "path": "vendor/lwext4/include/ext4_debug.h",
+        "sha256": "ac0deb563f1d422c82dacd8bab249664b1c0f2906bd167639eec105e56b032c0"
+      },
+      {
+        "path": "vendor/lwext4/include/ext4_dir.h",
+        "sha256": "bbeb25a83a849d59586006ddcfbabc7bbce9d4fd4bb5b725a4a5f59c39515fbd"
+      },
+      {
+        "path": "vendor/lwext4/include/ext4_dir_idx.h",
+        "sha256": "63a0c5db20ca49cf8a42661a149c318e0aa62310050077e1fc78bff21d7ff7c8"
+      },
+      {
+        "path": "vendor/lwext4/include/ext4_errno.h",
+        "sha256": "fc21822172744af4771838a597bd062c2dfda2ea632938c87c189a9781e05a32"
+      },
+      {
+        "path": "vendor/lwext4/include/ext4_extent.h",
+        "sha256": "a687e82d6c4e5d3ec37f2fcab496e4a12193526d1db59d95b7240b67a436a8dd"
+      },
+      {
+        "path": "vendor/lwext4/include/ext4_fs.h",
+        "sha256": "e48e80332155d4d7d36954154f92ba7fb665cb362cb5226939122cd20963358f"
+      },
+      {
+        "path": "vendor/lwext4/include/ext4_hash.h",
+        "sha256": "3a93d61d67a0096a317c9185fa5cf25e379be55666d76d1b976220614257cd35"
+      },
+      {
+        "path": "vendor/lwext4/include/ext4_ialloc.h",
+        "sha256": "337c8409edbd350314017f9408cb08aebc716989980ede488d4ea7b06b48205f"
+      },
+      {
+        "path": "vendor/lwext4/include/ext4_inode.h",
+        "sha256": "599eb950cd31c2f32dbb765589047083cd7199e2f97c35ed6c4974567fa9c613"
+      },
+      {
+        "path": "vendor/lwext4/include/ext4_journal.h",
+        "sha256": "e0eac70f99dc83f5888acc8c646386e45100e42a8000e0bce2ab28a6e9cb98d3"
+      },
+      {
+        "path": "vendor/lwext4/include/ext4_mbr.h",
+        "sha256": "a14d65337524dba4bec8d22ffbd789abae91ab1866a789342b8f33a91b1cd57f"
+      },
+      {
+        "path": "vendor/lwext4/include/ext4_misc.h",
+        "sha256": "1744165200a86918e9754c2f18fe0245db91555811d2015029eeac62bd435cda"
+      },
+      {
+        "path": "vendor/lwext4/include/ext4_mkfs.h",
+        "sha256": "986682edcf09c028af1e751eba4a60253464124a6a6e0037abe5f794e7c98944"
+      },
+      {
+        "path": "vendor/lwext4/include/ext4_oflags.h",
+        "sha256": "88463bc5dfb6b77bb406034df437606c3bafdab7d893dc5db92dc4a1eb2b26be"
+      },
+      {
+        "path": "vendor/lwext4/include/ext4_super.h",
+        "sha256": "5c6a8210616cd98bd625c2213df62de97ab430d3720b168a1287a6a9b77a931c"
+      },
+      {
+        "path": "vendor/lwext4/include/ext4_trans.h",
+        "sha256": "9475ddf9d86c18b5790a57e1e9bbd0d3c5e5e9166c727b8422d1f317d9a72c2d"
+      },
+      {
+        "path": "vendor/lwext4/include/ext4_types.h",
+        "sha256": "74b1fb04b852be38977e419ebf70d686119a17e848fcfe02bc0fd971674f1f8f"
+      },
+      {
+        "path": "vendor/lwext4/include/ext4_xattr.h",
+        "sha256": "355c9c106538697d96b22d09eb7fd54ca895b0a09d5c11da2296cfb45187e660"
+      },
+      {
+        "path": "vendor/lwext4/include/misc/queue.h",
+        "sha256": "cc8e16d9224059f90a21d099f583846e46ec8064768dfe0d6bf1816046bd6f89"
+      },
+      {
+        "path": "vendor/lwext4/include/misc/tree.h",
+        "sha256": "624a1078f719dacbc82f0271a2b3d0b571a947e3b75f9ad0eac15dd262fd36d4"
+      },
+      {
+        "path": "vendor/lwext4/src/ext4.c",
+        "sha256": "80a20f8416a14d2f4526a3269bf1a5d8cfd77430e1cd69a315ed73e247a8d7f0"
+      },
+      {
+        "path": "vendor/lwext4/src/ext4_balloc.c",
+        "sha256": "d588d8222b3ef94203ad5654023a88fca12c94576ad08082195d27c02248d425"
+      },
+      {
+        "path": "vendor/lwext4/src/ext4_bcache.c",
+        "sha256": "98db84d8fd6523627883cd741cd3357a10f884583f106a3760a11ef6bcd740d7"
+      },
+      {
+        "path": "vendor/lwext4/src/ext4_bitmap.c",
+        "sha256": "917c51fb9144a3a9af10922687ea47b771c362d00b19b150def0753e1d250c6a"
+      },
+      {
+        "path": "vendor/lwext4/src/ext4_block_group.c",
+        "sha256": "d650c32025c724c3130f080464de3c98ae5e7c574074df731773cf7a0310cf2b"
+      },
+      {
+        "path": "vendor/lwext4/src/ext4_blockdev.c",
+        "sha256": "a17158b9e7357d2e802df45a80ce878e33bf67bbc5ccc9b404abddd511a1c7d9"
+      },
+      {
+        "path": "vendor/lwext4/src/ext4_crc32.c",
+        "sha256": "79fd372cc84b9dce6b6ca0631c4f2589cdecfcef142997ec003121e6b4f5ae2b"
+      },
+      {
+        "path": "vendor/lwext4/src/ext4_debug.c",
+        "sha256": "c3a1dfb96b26c11af56e96e18c5f2f33372447e6c278606aac975af512ec701a"
+      },
+      {
+        "path": "vendor/lwext4/src/ext4_dir.c",
+        "sha256": "c364e75c8ccea195267ad6e4dbb24bb328ec42af8303144e967c399bad989e8d"
+      },
+      {
+        "path": "vendor/lwext4/src/ext4_dir_idx.c",
+        "sha256": "94c74b8face52c7c0b8af1ea5d30c2ccf56032c0b781c2d427f6186d875f6dba"
+      },
+      {
+        "path": "vendor/lwext4/src/ext4_fs.c",
+        "sha256": "4cbf8613b0b7cc328ae77d695878627a114be415b08dab9f942cb5576e196a3f"
+      },
+      {
+        "path": "vendor/lwext4/src/ext4_hash.c",
+        "sha256": "c4997d3b979b200a1f06e7400618dd5067b7f67f10549ce0356be51ab0248304"
+      },
+      {
+        "path": "vendor/lwext4/src/ext4_ialloc.c",
+        "sha256": "4a7873fd55f21ae1454effc2daa6ee8477e1b2754a6cd11106c39988827f612a"
+      },
+      {
+        "path": "vendor/lwext4/src/ext4_inode.c",
+        "sha256": "b8a6cb41f6250cbfc081d49ae04d2a2eab44e971e2880a6a4d949b23214f6883"
+      },
+      {
+        "path": "vendor/lwext4/src/ext4_journal.c",
+        "sha256": "c8698d114675ffdba7a2b1c0935e1d78da00264e5c1e78e78f602ea23cd6d304"
+      },
+      {
+        "path": "vendor/lwext4/src/ext4_mbr.c",
+        "sha256": "c8c3933ba5cfa330b1fdd6a29f2a049c4a3b5a329ef9f22c7d9883c5180bf8d0"
+      },
+      {
+        "path": "vendor/lwext4/src/ext4_mkfs.c",
+        "sha256": "018c843f38f02a5fb36b1129deb1287fda30cccdf4163a2980b9026aa6ea1a33"
+      },
+      {
+        "path": "vendor/lwext4/src/ext4_super.c",
+        "sha256": "cabed718012e8e8476a5e4ab71772da5acca05e0a6fef63a888052b6ab68e45a"
+      },
+      {
+        "path": "vendor/lwext4/src/ext4_trans.c",
+        "sha256": "ed9078d54245ab9128510bdc69de58a4bc8cd665d8176adc5af79d39f3814728"
+      },
+      {
+        "path": "native/ext4-worker/extents.c",
+        "sha256": "ecd061bf95227879d12ef85f9eb96f6487b88ff570cbe3f670f02895e8f520e3"
+      },
+      {
+        "path": "native/ext4-worker/xattrs.c",
+        "sha256": "cc3386f2b4993cc71ce95c31fa3774d5b1a502604ed7f9e9b6fb34e1d8ac3448"
+      },
+      {
+        "path": "native/ext4-worker/acls.c",
+        "sha256": "85e5b1f50afb4d280b07d5fdc7549cc0876d2cd2931e6ef73688bc2f0cd97b26"
+      },
+      {
+        "path": "native/ext4-worker/worker.c",
+        "sha256": "d593e2bfa4565fecaba9c45dd860b03ec0ed36ef7bb31f0f735d68a8dcc2b7ff"
+      },
+      {
+        "path": "native/ext4-worker/LICENSE",
+        "sha256": "44ef1281d6e17136863e09da153410effdea4a9476e71104e5d4f86c4d0c633b"
+      },
+      {
+        "path": "scripts/build_ext4_worker.py",
+        "sha256": "7b1a5459a61f25694a23e50423df749b321210b62a8321b60639f5d50f3ac697"
+      },
+      {
+        "path": "vendor/lwext4-origin.json",
+        "sha256": "245c7cd457a18ba397c8e6342341886bf622eb24005551c01ca2f3fda8fe59ad"
+      },
+      {
+        "path": "vendor/lwext4-xetch.patch",
+        "sha256": "28277f8bb89e9f68043d732a0e5aa4f658ddc2317730995bd1f690c48926091e"
+      }
+    ],
+    "features": {
+      "independent_bsd_extents": true,
+      "xattr_mutation": true,
+      "posix_acl_inheritance": true
+    },
+    "license_files": {
+      "lwext4-file-notices.txt": "2d0c6faab137316d4288ebce4e2f2e00e6c68a52ddab5041add8686b0a9c9edc",
+      "xetch-ext4-worker-BSD-3-Clause.txt": "44ef1281d6e17136863e09da153410effdea4a9476e71104e5d4f86c4d0c633b"
+    },
+    "vendor_inventory_sha256": "245c7cd457a18ba397c8e6342341886bf622eb24005551c01ca2f3fda8fe59ad",
+    "reviewed_patch_sha256": "28277f8bb89e9f68043d732a0e5aa4f658ddc2317730995bd1f690c48926091e"
+  },
+  "control_stress": {
+    "engine": "fstool",
+    "backend_sha256": "5f3371e11e3c817085ceb04f18a09917fec30951b31100ce2085447cd65c1b79",
+    "source_report": {
+      "path": "artifacts/lwext4-v1-linux-final-control-stress-results.json",
+      "sha256": "60bafe66fb044aafb938a84ed180199ad3930869a2cec309f0fcaaf167769502"
+    },
+    "summary": {
+      "cases": 2,
+      "check_groups": 24,
+      "random_operations": 2000,
+      "snapshot_kernel_roundtrips": 126,
+      "final_stress_kernel_checks": 2
+    },
+    "cases": [
+      {
+        "filesystem": "ext4",
+        "suite": "fragmented-random-stress",
+        "status": "pass",
+        "workload_version": 2,
+        "seed": 24301,
+        "operations": 1000,
+        "allocation_churn_guard": "pass",
+        "operation_counts": {
+          "replace": 120,
+          "rename-directory": 149,
+          "put": 207,
+          "rename-file": 103,
+          "mkdir": 79,
+          "reject": 122,
+          "rmdir": 108,
+          "remove": 112
+        },
+        "executed_method_counts": {
+          "file.put": 449,
+          "file.list": 53,
+          "file.rename": 251,
+          "file.mkdir": 79,
+          "file.remove": 168
+        },
+        "expected_rejections": 122,
+        "snapshot_roundtrips": 63,
+        "checkpoint_every": 16,
+        "rpc_requests": 1191,
+        "anchors": 403,
+        "physical_fragment_runs": 31,
+        "checks": [
+          "actual_interleaved_allocations_and_hole_reuse",
+          "independently_verified_physical_fragmentation",
+          "seeded_operation_log",
+          "exact_namespace_and_all_payloads_against_reference_model",
+          "rejected_operations_preserve_manifest",
+          "all_anchors_and_fragmented_file_hashes_preserved",
+          "independent_fsck_each_snapshot",
+          "real_kernel_reads_all_files_and_writes_feedback",
+          "continued_backend_edits_after_kernel_writeback",
+          "repeated_compaction_and_workspace_reopen",
+          "no_pending_manifest_or_edit_leaks",
+          "original_source_hash_unchanged"
+        ],
+        "operation_log": {
+          "sha256": "30042e50be421bd76d73527d7e02708ea0ccc113f83383625166d26d563291f4",
+          "entries": 1000,
+          "relative_path": "ext4-stress/seed-24301/operations.jsonl",
+          "contiguous_steps_and_counters_verified": true,
+          "upload_size_and_hash_present": true
+        }
+      },
+      {
+        "filesystem": "ext4",
+        "suite": "fragmented-random-stress",
+        "status": "pass",
+        "workload_version": 2,
+        "seed": 12648430,
+        "operations": 1000,
+        "allocation_churn_guard": "pass",
+        "operation_counts": {
+          "replace": 121,
+          "rename-directory": 140,
+          "remove": 119,
+          "rmdir": 107,
+          "rename-file": 124,
+          "put": 212,
+          "mkdir": 74,
+          "reject": 103
+        },
+        "executed_method_counts": {
+          "file.put": 436,
+          "file.list": 63,
+          "file.remove": 170,
+          "file.rename": 257,
+          "file.mkdir": 74
+        },
+        "expected_rejections": 103,
+        "snapshot_roundtrips": 63,
+        "checkpoint_every": 16,
+        "rpc_requests": 1191,
+        "anchors": 403,
+        "physical_fragment_runs": 31,
+        "checks": [
+          "actual_interleaved_allocations_and_hole_reuse",
+          "independently_verified_physical_fragmentation",
+          "seeded_operation_log",
+          "exact_namespace_and_all_payloads_against_reference_model",
+          "rejected_operations_preserve_manifest",
+          "all_anchors_and_fragmented_file_hashes_preserved",
+          "independent_fsck_each_snapshot",
+          "real_kernel_reads_all_files_and_writes_feedback",
+          "continued_backend_edits_after_kernel_writeback",
+          "repeated_compaction_and_workspace_reopen",
+          "no_pending_manifest_or_edit_leaks",
+          "original_source_hash_unchanged"
+        ],
+        "operation_log": {
+          "sha256": "38eb687b60a5f608c7c9581041ae0e04deffeebe8b27f57fdfe203b1f213ab70",
+          "entries": 1000,
+          "relative_path": "ext4-stress/seed-12648430/operations.jsonl",
+          "contiguous_steps_and_counters_verified": true,
+          "upload_size_and_hash_present": true
+        }
+      }
+    ]
+  }
+}

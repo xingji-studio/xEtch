@@ -1,7 +1,7 @@
 #!/bin/sh
 # No Python/build tools needed. Run from any working directory.
 if [ "${XETCH_PACKAGE_CHECK:-}" = isolated ]; then
-    unset XETCH_BACKEND XETCH_NTFS_WORKER XETCH_QEMU_IMG XETCH_QEMU_STORAGE_DAEMON QEMU_MODULE_DIR LD_LIBRARY_PATH DYLD_LIBRARY_PATH
+    unset XETCH_EXT4_ENGINE XETCH_EXT4_WORKER XETCH_BACKEND XETCH_NTFS_WORKER XETCH_QEMU_IMG XETCH_QEMU_STORAGE_DAEMON QEMU_MODULE_DIR LD_LIBRARY_PATH DYLD_LIBRARY_PATH
     PATH=/usr/bin:/bin
     export PATH
 fi
@@ -46,5 +46,19 @@ elif [ -f "$package_dir/xetch-ntfs-worker" ]; then
     exit 1
 else
     echo "[NOTE] Optional NTFS worker is absent; NTFS is read-only. Other supported filesystems remain available."
+fi
+ext4_worker=${XETCH_EXT4_WORKER:-"$package_dir/xetch-ext4-worker"}
+if [ -f "$ext4_worker" ]; then
+    version=$("$ext4_worker" --version) || { echo "[ERROR] BSD ext4 worker cannot start; restore the worker and its runtime libraries."; exit 1; }
+    if ! printf '%s\n' "$version" | grep -q '"profile":"bsd-xattr-acl-v1"'; then
+        echo "[ERROR] BSD ext4 worker has an incompatible profile. Rebuild/package the matching worker."
+        exit 1
+    fi
+    echo "[OK] BSD ext4 xattr/ACL worker is ready. Set XETCH_EXT4_ENGINE=lwext4 to select it."
+elif [ "${XETCH_EXT4_ENGINE:-fstool}" = lwext4 ]; then
+    echo "[ERROR] Selected BSD ext4 worker is missing. Repackage with XETCH_EXT4=on or correct XETCH_EXT4_WORKER."
+    exit 1
+else
+    echo "[NOTE] Optional BSD ext4 worker absent; the default fstool ext4 engine remains available."
 fi
 echo "[OK] Runtime dependency check passed."

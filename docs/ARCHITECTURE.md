@@ -12,7 +12,7 @@ FAT 继续使用 `fatfs`；`extended.rs` 通过固定版本 `fstool = 0.5.0` 的
 
 exFAT/ext4 写入由应用层显式实验参数控制，成功操作记录 `experimental_filesystem`。NTFS 写入通过 `ntfs.rs` 调用独立 NTFS-3G 2026.9.28 工作进程，其自定义设备回调由父进程通过管道访问分区窗口。库默认宿主设备 I/O 被禁用。覆盖普通文件保留原 inode/MFT 和其安全描述符及其他属性，失败时丢弃子覆盖层。组件评估、支持边界与验证见 [NTFS 说明](NTFS.md)。
 
-`ext4_worker.rs` 提供可选的 lwext4 P0，默认保留 fstool 作为原实现和对照。worker 只接收操作参数与卷容量，通过有界 stdio 块请求访问父进程的分区窗口，不能直接打开镜像。父进程复用卷状态、inode/xattr 检查、子进程生命周期和提交策略，并在写入应答前下传 NBD FLUSH。固定版本的 BSD lwext4 源文件和独立 BSD extent 模块编译为 `xetch-ext4-worker`，上游 GPL extent/xattr 源文件不进入源码包或编译输入；清单哈希检查、源码补丁与范围见 [P0 报告](LWEXT4-P0.md)。CLI、GUI 和 JSON-RPC 请求无需变化。
+`ext4_worker.rs` 提供可选的 lwext4 引擎，默认保留 fstool 作为原实现和对照。worker 只接收操作参数与卷容量，通过有界 stdio 块请求访问父进程的分区窗口，不能直接打开镜像。父进程复用卷状态、inode/xattr 检查、子进程生命周期和提交策略，并在写入应答前下传 NBD FLUSH。固定版本的 BSD lwext4 源文件和独立 BSD extent、xattr 和 ACL 模块编译为 `xetch-ext4-worker`，上游 GPL extent/xattr 源文件不进入源码包或编译输入；清单哈希检查、源码补丁与范围见 [lwext4 说明](LWEXT4.md)。CLI、GUI 和 JSON-RPC 请求无需变化。
 
 `crates/xetch-cli`：clap 参数入口、JSON-RPC stdio 传输。两者均调用 `xetch_core::execute(method, params)`。
 
@@ -48,3 +48,5 @@ ext4 检查完整的 JBD2 超级块 CRC，按既有特性生成日志标签及�
 4. 扩大 exFAT/ext4 真实来源样本、共享外置扩展属性和故障注入覆盖；完成 macOS 实机验收、QEMU 打包和签名。
 5. 完善工作区路径迁移、覆盖链压缩、撤销与清理；优化完整源哈希对大镜像的影响。
 6. 完善 Windows GUI，接入 Linux/macOS 原生前端。现有分区表修改、分区缩放、系统挂载和原地写回另行验收。
+
+物理分区编辑的保护、授权与恢复设计见 [规划文档](PHYSICAL-PARTITIONS-PLAN.md)，当前实现不开放设备写入。
